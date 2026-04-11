@@ -1,0 +1,128 @@
+package lexicon:plugin-roles;
+
+interface common-types {
+  variant plugin-error {
+    network-failure(string),
+    parsing-failure(string),
+    rate-limit(string),
+    not-found(string),
+    unknown(string),
+  }
+
+  record http-header {
+    key: string,
+    value: string,
+  }
+
+  record http-request {
+    method: string,
+    url: string,
+    query: list<http-header>,
+    headers: list<http-header>,
+    body: option<string>,
+    timeout-ms: option<u64>,
+  }
+
+  record http-response {
+    status: u16,
+    body: string,
+  }
+}
+
+interface host-http {
+  use common-types.{http-request, http-response};
+  send-http-request: func(request: http-request) -> result<http-response, string>;
+}
+
+interface discover-types {
+  use common-types.{plugin-error};
+
+  record discover-catalog {
+    id: string,
+    name: string,
+    content-type: string,
+    genres: list<string>,
+    supported-filters: list<string>,
+  }
+
+  record discover-item {
+    id: string,
+    title: string,
+    author: string,
+    cover-url: string,
+    genres: list<string>,
+    year: option<u32>,
+    short-description: option<string>,
+    format: option<string>,
+    isbn: option<string>,
+  }
+
+  record discover-catalog-query {
+    catalog-id: string,
+    skip: u32,
+    page-size: u32,
+    genre: option<string>,
+    year: option<u32>,
+  }
+
+  record discover-catalog-page {
+    items: list<discover-item>,
+    has-more: bool,
+  }
+
+  record discover-item-details {
+    id: string,
+    title: string,
+    author: string,
+    description: option<string>,
+    cover-url: string,
+    genres: list<string>,
+    year: option<u32>,
+    format: option<string>,
+    isbn: option<string>,
+    origin-url: option<string>,
+  }
+}
+
+interface source-types {
+  use common-types.{plugin-error};
+
+  record source-info {
+    source-name: string,
+    source-id: string,
+    supported-formats: list<string>,
+  }
+
+  record source-search-query {
+    title: string,
+    author: option<string>,
+    isbn: option<string>,
+  }
+
+  record source-download-result {
+    download-url: string,
+    format: string,
+    size: option<string>,
+    language: option<string>,
+    quality: option<string>,
+  }
+}
+
+world discover-plugin {
+  import host-http;
+  use common-types.{plugin-error};
+  use discover-types.{discover-catalog, discover-catalog-page, discover-catalog-query, discover-item-details};
+
+  export list-catalogs: func() -> result<list<discover-catalog>, plugin-error>;
+  export list-catalog-items: func(request: discover-catalog-query) -> result<discover-catalog-page, plugin-error>;
+  export get-item-details: func(item-id: string) -> result<discover-item-details, plugin-error>;
+}
+
+world source-plugin {
+  import host-http;
+  use common-types.{plugin-error};
+  use source-types.{source-download-result, source-info, source-search-query};
+
+  export get-source-info: func() -> source-info;
+  export find-downloads: func(request: source-search-query) -> result<list<source-download-result>, plugin-error>;
+}

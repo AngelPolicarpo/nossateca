@@ -1,0 +1,7 @@
+[env]
+ROCM_PATH = "/opt/rocm"
+HIP_PATH = "/opt/rocm"
+CMAKE_PREFIX_PATH = "/opt/rocm"
+HIPFLAGS = "-fPIC"
+CMAKE_HIP_FLAGS = "-fPIC"
+CMAKE_HIP_FLAGS_RELEASE = "-O3 -DNDEBUG -fPIC"

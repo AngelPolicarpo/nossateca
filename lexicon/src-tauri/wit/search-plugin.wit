@@ -1,0 +1,53 @@
+package lexicon:plugins;
+
+interface search-types {
+  record search-setting {
+    key: string,
+    value: string,
+  }
+
+  record search-request {
+    query: string,
+    settings: list<search-setting>,
+  }
+
+  record search-result {
+    id: string,
+    title: string,
+    author: option<string>,
+    source: string,
+    format: option<string>,
+    download-url: string,
+    score: f32,
+  }
+
+  record http-header {
+    key: string,
+    value: string,
+  }
+
+  record http-request {
+    method: string,
+    url: string,
+    query: list<http-header>,
+    headers: list<http-header>,
+    body: option<string>,
+    timeout-ms: option<u64>,
+  }
+
+  record http-response {
+    status: u16,
+    body: string,
+  }
+}
+
+interface host-http {
+  use search-types.{http-request, http-response};
+  send-http-request: func(request: http-request) -> result<http-response, string>;
+}
+
+world search-plugin {
+  import host-http;
+  use search-types.{search-request, search-result};
+  export search-books: func(request: search-request) -> list<search-result>;
+}

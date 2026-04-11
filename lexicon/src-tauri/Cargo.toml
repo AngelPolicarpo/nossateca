@@ -1,0 +1,39 @@
+[package]
+name = "lexicon"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "lexicon_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+anyhow = "1"
+epub = "2"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "migrate"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+librqbit = { version = "8.1.1", default-features = false, features = ["rust-tls"] }
+wasmtime = { version = "21", features = ["component-model"] }
+wasmtime-wasi = "21"
+wit-bindgen = "0.51"
+base64 = "0.22"
+lopdf = "0.34"
+
