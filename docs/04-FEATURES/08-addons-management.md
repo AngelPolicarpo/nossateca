@@ -4,11 +4,11 @@
 Permitir que o usuario instale, remova e configure addons WASM com papeis isolados de Discover, Source e Legacy Search.
 
 ## Componentes principais
-- Frontend: lexicon/src/components/AddonsView.tsx.
-- Frontend hook: lexicon/src/hooks/useAddons.ts.
-- Backend comandos: lexicon/src-tauri/src/commands/addons.rs.
-- Runtime: lexicon/src-tauri/src/plugins/manager.rs.
-- Contratos de addon: lexicon/src-tauri/wit/search-plugin.wit (legacy) e lexicon/src-tauri/wit/discover-source-plugin.wit (discover/source).
+- Frontend: nossateca/src/components/AddonsView.tsx.
+- Frontend hook: nossateca/src/hooks/useAddons.ts.
+- Backend comandos: nossateca/src-tauri/src/commands/addons.rs.
+- Runtime: nossateca/src-tauri/src/plugins/manager.rs.
+- Contratos de addon: nossateca/src-tauri/wit/search-plugin.wit (legacy) e nossateca/src-tauri/wit/discover-source-plugin.wit (discover/source).
 
 ## Fluxo principal
 1. Usuario abre aba Addons.

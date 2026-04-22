@@ -16,7 +16,7 @@ Tambem foi removido o Home legado da UI para que a busca ocorra apenas em Discov
 ## Mudancas implementadas
 
 ### 1) Remocao do Home legado
-Arquivo: `lexicon/src/App.tsx`
+Arquivo: `nossateca/src/App.tsx`
 
 Mudancas principais:
 - Removida aba `home` do tipo `AppTab` e do `navItems`.
@@ -31,8 +31,8 @@ Resultado:
 
 ### 2) Novo plugin Source da Open Library
 Novos arquivos:
-- `lexicon/src-tauri/plugins/openlibrary-source-plugin/Cargo.toml`
-- `lexicon/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
+- `nossateca/src-tauri/plugins/openlibrary-source-plugin/Cargo.toml`
+- `nossateca/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
 
 Comportamento do plugin:
 - Contrato: `source-plugin` (WIT `discover-source-plugin.wit`).
@@ -63,18 +63,18 @@ Correcao posterior neste ciclo:
 
 ### 3) Plugin compilado para runtime
 Artefato gerado:
-- `lexicon/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`
+- `nossateca/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`
 
 Com isso, o runtime passa a carregar esse plugin junto dos outros Source plugins, e a busca de fontes no Discover continua em paralelo pelo comando existente `search_source_downloads`.
 
 ### 4) Busca global do Discover agora remota
 Arquivos alterados:
-- `lexicon/src/hooks/useDiscover.ts`
-- `lexicon/src/components/DiscoverView.tsx`
-- `lexicon/src-tauri/src/commands/discover.rs`
-- `lexicon/src-tauri/src/plugins/manager.rs`
-- `lexicon/src-tauri/wit/discover-source-plugin.wit`
-- `lexicon/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
+- `nossateca/src/hooks/useDiscover.ts`
+- `nossateca/src/components/DiscoverView.tsx`
+- `nossateca/src-tauri/src/commands/discover.rs`
+- `nossateca/src-tauri/src/plugins/manager.rs`
+- `nossateca/src-tauri/wit/discover-source-plugin.wit`
+- `nossateca/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
 
 Mudancas principais:
 - Adicionado parametro opcional `search_query` no contrato `list_discover_catalog_items`.
@@ -85,7 +85,7 @@ Mudancas principais:
 
 ### 5) Indicacao visual de origem publica vs externa no painel
 Arquivo alterado:
-- `lexicon/src/components/DiscoverView.tsx`
+- `nossateca/src/components/DiscoverView.tsx`
 
 Mudancas principais:
 - Cada grupo de resultados na secao "Onde encontrar" agora mostra badge de categoria da fonte.
@@ -97,9 +97,9 @@ Resultado:
 
 ### 6) Remocao do caminho legado `search_books` no backend
 Arquivos alterados:
-- `lexicon/src-tauri/src/main.rs`
-- `lexicon/src-tauri/src/commands/mod.rs`
-- `lexicon/src-tauri/src/commands/search.rs` (removido)
+- `nossateca/src-tauri/src/main.rs`
+- `nossateca/src-tauri/src/commands/mod.rs`
+- `nossateca/src-tauri/src/commands/search.rs` (removido)
 
 Mudancas principais:
 - Comando Tauri `commands::search::search_books` removido do `invoke_handler`.
@@ -111,7 +111,7 @@ Resultado:
 
 ### 7) Nova opcao de catalogo `Gratuitos`
 Arquivo alterado:
-- `lexicon/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
+- `nossateca/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
 
 Mudancas principais:
 - Novo catalogo Discover `openlibrary:free` com nome de exibicao `Gratuitos`.
@@ -121,7 +121,7 @@ Mudancas principais:
 
 ### 8) Remocao da priorizacao de idioma no Open Library Discover
 Arquivo alterado:
-- `lexicon/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
+- `nossateca/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
 
 Mudancas principais:
 - A selecao de edicao preferida deixou de usar ranking de idioma.
@@ -138,9 +138,9 @@ Resultado:
 
 ### 9) Normalizacao de metadados no painel de fontes (LibGen + Open Library)
 Arquivos alterados:
-- `lexicon/src-tauri/plugins/libgen-source-plugin/src/lib.rs`
-- `lexicon/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
-- `lexicon/src/components/DiscoverView.tsx`
+- `nossateca/src-tauri/plugins/libgen-source-plugin/src/lib.rs`
+- `nossateca/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
+- `nossateca/src/components/DiscoverView.tsx`
 
 Mudancas principais:
 - Corrigido mapeamento de colunas do LibGen (`Language`, `Pages`, `Size`) para evitar troca indevida entre idioma e tamanho.
@@ -157,12 +157,12 @@ Resultado:
 
 ### 10) Mitigacao de trap WASM em `find_downloads` (Open Library + LibGen)
 Arquivos alterados:
-- `lexicon/src-tauri/src/plugins/manager.rs`
-- `lexicon/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
-- `lexicon/src-tauri/plugins/libgen-source-plugin/src/lib.rs`
+- `nossateca/src-tauri/src/plugins/manager.rs`
+- `nossateca/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
+- `nossateca/src-tauri/plugins/libgen-source-plugin/src/lib.rs`
 
 Mudancas principais:
-- Runtime host agora aplica piso seguro para `LEXICON_PLUGIN_FUEL`:
+- Runtime host agora aplica piso seguro para `nossateca_PLUGIN_FUEL`:
   - valor minimo forçado para `80_000_000` (com log quando o env vier abaixo disso).
 - Open Library Source recebeu limites defensivos para reduzir custo por consulta:
   - limite de `ia[]` por doc (`MAX_IA_IDS_PER_DOC`)
@@ -184,9 +184,9 @@ Resultado:
 
 ### 11) Busca do Discover movida para topbar global
 Arquivos alterados:
-- `lexicon/src/App.tsx`
-- `lexicon/src/components/DiscoverView.tsx`
-- `lexicon/src/App.css`
+- `nossateca/src/App.tsx`
+- `nossateca/src/components/DiscoverView.tsx`
+- `nossateca/src/App.css`
 
 Mudancas principais:
 - O campo `Buscar por titulo, autor ou ISBN` saiu do bloco local de filtros do Discover e foi movido para o header global (`lx-topbar`).
@@ -201,8 +201,8 @@ Resultado:
 
 ### 12) Redesign do header `dc-filters-strip` (compacto + secoes separadas)
 Arquivos alterados:
-- `lexicon/src/components/DiscoverView.tsx`
-- `lexicon/src/components/DiscoverView.css`
+- `nossateca/src/components/DiscoverView.tsx`
+- `nossateca/src/components/DiscoverView.css`
 
 Mudancas principais:
 - A linha principal de filtros foi simplificada para tres blocos: `Tipo` (select), `Colecao` (select) e `Limpar tudo`.
@@ -235,11 +235,11 @@ Link de download derivado do JSON (`ia[0]`):
 - Build frontend (`npm run build`) executado com sucesso.
 - `cargo check` no backend executado com sucesso.
 - Build do plugin `openlibrary-discover-plugin` (`wasm32-wasip2 --release`) executado com sucesso.
-- Artefato copiado para `lexicon/src-tauri/plugins/dist/openlibrary-discover-plugin.wasm`.
+- Artefato copiado para `nossateca/src-tauri/plugins/dist/openlibrary-discover-plugin.wasm`.
 - Build do plugin `openlibrary-source-plugin` (`wasm32-wasip2 --release`) executado com sucesso apos fix de URL por metadata.
-- Artefato copiado para `lexicon/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`.
+- Artefato copiado para `nossateca/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`.
 - Build do plugin `libgen-source-plugin` (`wasm32-wasip2 --release`) executado com sucesso.
-- Reproducao controlada com `LEXICON_PLUGIN_FUEL=1000000`:
+- Reproducao controlada com `nossateca_PLUGIN_FUEL=1000000`:
   - antes: `source find_downloads failed: error while executing at wasm backtrace`
   - depois: runtime ajusta fuel para `80_000_000` e os plugins Source executam sem trap.
 - Reproducao dirigida com payload real de Discover (`Rich Dad, Poor Dad` + ISBN):
@@ -248,7 +248,7 @@ Link de download derivado do JSON (`ia[0]`):
 - Validacao de erros de editor sem erros nos arquivos alterados.
 
 ## O que ja garante paralelo sem fallback sequencial
-- O comando backend `search_source_downloads` (em `lexicon/src-tauri/src/commands/discover.rs`) ja executa todos os Source plugins em paralelo com `JoinSet`.
+- O comando backend `search_source_downloads` (em `nossateca/src-tauri/src/commands/discover.rs`) ja executa todos os Source plugins em paralelo com `JoinSet`.
 - Ao adicionar `openlibrary-source-plugin` ao conjunto de plugins Source, Open Library participa do mesmo fan-out paralelo de LibGen/Anna.
 
 ## Pendencias recomendadas para o proximo ciclo
@@ -257,25 +257,25 @@ Link de download derivado do JSON (`ia[0]`):
 
 ## Comandos uteis para retomar
 - Build plugin novo:
-  - `cd lexicon/src-tauri && cargo build --manifest-path plugins/openlibrary-source-plugin/Cargo.toml --target wasm32-wasip2 --release`
+  - `cd nossateca/src-tauri && cargo build --manifest-path plugins/openlibrary-source-plugin/Cargo.toml --target wasm32-wasip2 --release`
 - Copiar para dist:
-  - `cp lexicon/src-tauri/plugins/openlibrary-source-plugin/target/wasm32-wasip2/release/openlibrary_source_plugin.wasm lexicon/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`
+  - `cp nossateca/src-tauri/plugins/openlibrary-source-plugin/target/wasm32-wasip2/release/openlibrary_source_plugin.wasm nossateca/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`
 - Build geral de plugins:
-  - `cd lexicon/src-tauri/plugins && ./build-mock-plugin.sh`
+  - `cd nossateca/src-tauri/plugins && ./build-mock-plugin.sh`
 
 ## Arquivos alterados neste ciclo
-- `lexicon/src/App.tsx`
-- `lexicon/src-tauri/src/main.rs`
-- `lexicon/src-tauri/src/commands/mod.rs`
-- `lexicon/src-tauri/src/commands/search.rs` (removido)
-- `lexicon/src-tauri/plugins/openlibrary-source-plugin/Cargo.toml`
-- `lexicon/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
-- `lexicon/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`
-- `lexicon/src-tauri/plugins/dist/openlibrary-discover-plugin.wasm`
-- `lexicon/src/hooks/useDiscover.ts`
-- `lexicon/src/components/DiscoverView.tsx`
-- `lexicon/src-tauri/src/commands/discover.rs`
-- `lexicon/src-tauri/src/plugins/manager.rs`
-- `lexicon/src-tauri/wit/discover-source-plugin.wit`
-- `lexicon/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
+- `nossateca/src/App.tsx`
+- `nossateca/src-tauri/src/main.rs`
+- `nossateca/src-tauri/src/commands/mod.rs`
+- `nossateca/src-tauri/src/commands/search.rs` (removido)
+- `nossateca/src-tauri/plugins/openlibrary-source-plugin/Cargo.toml`
+- `nossateca/src-tauri/plugins/openlibrary-source-plugin/src/lib.rs`
+- `nossateca/src-tauri/plugins/dist/openlibrary-source-plugin.wasm`
+- `nossateca/src-tauri/plugins/dist/openlibrary-discover-plugin.wasm`
+- `nossateca/src/hooks/useDiscover.ts`
+- `nossateca/src/components/DiscoverView.tsx`
+- `nossateca/src-tauri/src/commands/discover.rs`
+- `nossateca/src-tauri/src/plugins/manager.rs`
+- `nossateca/src-tauri/wit/discover-source-plugin.wit`
+- `nossateca/src-tauri/plugins/openlibrary-discover-plugin/src/lib.rs`
 - `docs/04-FEATURES/10-search-option-implementation-handoff.md`

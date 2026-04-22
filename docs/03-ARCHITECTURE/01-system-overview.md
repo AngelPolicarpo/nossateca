@@ -1,7 +1,7 @@
 # 01 - System Overview
 
 ## Visao geral
-Lexicon e um app desktop local com fronteira clara entre UI React e core Rust via comandos Tauri.
+Nossateca e um app desktop local com fronteira clara entre UI React e core Rust via comandos Tauri.
 
 ## Componentes principais
 - UI (React): navega entre biblioteca, leitura, estudo e downloads.

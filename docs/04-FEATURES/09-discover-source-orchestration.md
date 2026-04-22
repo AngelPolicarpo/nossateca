@@ -5,10 +5,10 @@
 - O objetivo atual e separar papeis de plugin para manter extensibilidade e isolamento.
 
 ## Responsabilidades
-- Frontend: lexicon/src/components/DiscoverView.tsx e lexicon/src/hooks/useDiscover.ts.
-- Backend comandos: lexicon/src-tauri/src/commands/discover.rs.
-- Runtime de plugins: lexicon/src-tauri/src/plugins/manager.rs.
-- Contratos: lexicon/src-tauri/wit/discover-source-plugin.wit.
+- Frontend: nossateca/src/components/DiscoverView.tsx e nossateca/src/hooks/useDiscover.ts.
+- Backend comandos: nossateca/src-tauri/src/commands/discover.rs.
+- Runtime de plugins: nossateca/src-tauri/src/plugins/manager.rs.
+- Contratos: nossateca/src-tauri/wit/discover-source-plugin.wit.
 - Plugins ativos deste ciclo:
   - Discover: openlibrary-discover-plugin.
   - Source: openlibrary-source-plugin, libgen-source-plugin e annas-archive-source-plugin.

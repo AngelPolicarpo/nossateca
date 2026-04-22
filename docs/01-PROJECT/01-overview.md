@@ -1,7 +1,7 @@
 # 01 - Overview
 
 ## Objetivo do produto
-Lexicon e um app desktop para gerenciar livros digitais, ler EPUB e registrar anotacoes locais, com extensao de busca por plugins.
+Nossateca e um app desktop para gerenciar livros digitais, ler EPUB e registrar anotacoes locais, com extensao de busca por plugins.
 
 ## Problema resolvido
 - Centralizar biblioteca pessoal sem depender de servico cloud.
@@ -22,7 +22,7 @@ Lexicon e um app desktop para gerenciar livros digitais, ler EPUB e registrar an
 - Busca principal em fluxo Discover-first e gerenciador de downloads.
 
 ## Escopo removido do runtime
-- Camada de IA, chat e indexacao semantica dentro de lexicon.
+- Camada de IA, chat e indexacao semantica dentro de Nossateca.
 - Rotas de IA nao fazem parte do runtime atual deste workspace.
 
 ## Estado operacional para retomada

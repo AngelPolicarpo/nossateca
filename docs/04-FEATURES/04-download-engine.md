@@ -7,23 +7,23 @@
 
 ## Responsabilidades
 - Frontend principal:
-	- lexicon/src/App.tsx (tab Downloads, listeners de eventos, acoes por item).
-	- lexicon/src/components/DiscoverView.tsx (acao de enfileirar download a partir de fontes).
+	- nossateca/src/App.tsx (tab Downloads, listeners de eventos, acoes por item).
+	- nossateca/src/components/DiscoverView.tsx (acao de enfileirar download a partir de fontes).
 - Backend principal:
-	- lexicon/src-tauri/src/commands/download.rs.
-	- lexicon/src-tauri/src/download/manager.rs.
+	- nossateca/src-tauri/src/commands/download.rs.
+	- nossateca/src-tauri/src/download/manager.rs.
 - Modelos e eventos:
-	- lexicon/src-tauri/src/models/download.rs.
+	- nossateca/src-tauri/src/models/download.rs.
 - Persistencia:
-	- lexicon/src-tauri/migrations/005_downloads.sql.
+	- nossateca/src-tauri/migrations/005_downloads.sql.
 - Paths de runtime:
-	- lexicon/src-tauri/src/storage.rs (resolve_lexicon_data_dir).
+	- nossateca/src-tauri/src/storage.rs (resolve_nossateca_data_dir).
 
 ## Fluxo funcional
 1. Usuario inicia download pela tab Downloads (+ Adicionar URL ou magnet) ou via Discover.
 2. Frontend invoca start_download com source_url e file_name opcional.
 3. DownloadManager valida origem e nome, cria registro queued na tabela downloads e enfileira o id.
-4. Ator de downloads dispara workers conforme maximo de concorrencia (LEXICON_MAX_CONCURRENT_DOWNLOADS; padrao 2).
+4. Ator de downloads dispara workers conforme maximo de concorrencia (nossateca_MAX_CONCURRENT_DOWNLOADS; padrao 2).
 5. Worker escolhe pipeline por source_type:
 	 - http/opds: reqwest com retries, range resume e escrita em arquivo.
 	 - torrent: sessao integrada librqbit (sem CLI externo).
