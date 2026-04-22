@@ -32,11 +32,11 @@
 4. Cada fonte retorna lista propria de links diretos ou erro tipado.
 5. UI exibe resultados agrupados por fonte na barra lateral.
 
-## Fluxo de busca externa legado
-1. UI dispara search_books com query normalizada.
-2. Orquestrador executa apenas plugins legacy_search em paralelo com timeout.
-3. Resultados sao normalizados, ranqueados e deduplicados.
-4. UI apresenta lista para iniciar download.
+## Fluxo de busca Discover-first
+1. UI dispara busca global no Discover via list_discover_catalog_items com search_query.
+2. Plugin Discover executa consulta remota e retorna itens paginados.
+3. Usuario seleciona item e host dispara search_source_downloads em paralelo.
+4. UI apresenta resultados agrupados por fonte para iniciar download.
 
 ## Fluxo de download
 1. UI envia start_download com source_url.
@@ -58,3 +58,4 @@
 
 ## ⚠️ Inconsistências encontradas
 - user_settings nasce em migracao historica 003 ligada ao periodo de IA, mas continua sendo usada legitimamente pela configuracao de busca atual.
+- O endpoint Tauri legado search_books foi removido; qualquer referencia a esse fluxo deve ser tratada como historica.

@@ -1,3 +1,3 @@
 mod manager;
 
-pub use manager::{PluginManager, PluginRuntimeSnapshot};
+pub use manager::PluginManager;

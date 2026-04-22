@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AddBookButton } from "./AddBookButton";
+import { BookCover } from "./ui/BookCover";
+import { Button } from "./ui/Button";
+import { CustomSelect, type SelectOption } from "./ui/CustomSelect";
+import { EmptyState } from "./ui/EmptyState";
+import { Input } from "./ui/Input";
+import { Panel } from "./ui/Panel";
+import { StateMessage } from "./ui/StateMessage";
+import { cn } from "../lib/cn";
 
 export type Book = {
   id: number;
@@ -17,8 +25,7 @@ type LibraryViewProps = {
   onOpenReader: (bookId: string) => void;
 };
 
-type LibraryCollection = "all" | "recent" | "without-author";
-type LibraryViewMode = "grid" | "list" | "table";
+type LibraryViewMode = "grid" | "table";
 type LibrarySortField = "title" | "author" | "created_at";
 type SortDirection = "asc" | "desc";
 
@@ -28,7 +35,7 @@ type LibraryPreferences = {
   sortDirection: SortDirection;
 };
 
-const LIBRARY_PREFERENCES_KEY = "lexicon.library.preferences";
+const LIBRARY_PREFERENCES_KEY = "app.library.preferences";
 
 const DEFAULT_LIBRARY_PREFERENCES: LibraryPreferences = {
   viewMode: "grid",
@@ -78,10 +85,7 @@ function readLibraryPreferences(): LibraryPreferences {
     const parsed = JSON.parse(raw) as Partial<LibraryPreferences>;
 
     return {
-      viewMode:
-        parsed.viewMode === "grid" || parsed.viewMode === "list" || parsed.viewMode === "table"
-          ? parsed.viewMode
-          : DEFAULT_LIBRARY_PREFERENCES.viewMode,
+      viewMode: parsed.viewMode === "table" ? "table" : "grid",
       sortField:
         parsed.sortField === "title" || parsed.sortField === "author" || parsed.sortField === "created_at"
           ? parsed.sortField
@@ -138,18 +142,84 @@ function getBookStatusLabel(status: string): string {
   return sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
 }
 
-function getBookStatusTone(status: string): "neutral" | "info" | "success" {
+function getBookStatusToneClass(status: string): string {
   const normalized = normalizeBookStatus(status);
 
   if (normalized === "finished") {
-    return "success";
+    return "bg-[rgba(26,174,57,0.10)] text-[var(--color-semantic-green)]";
   }
 
   if (normalized === "reading") {
-    return "info";
+    return "bg-[var(--color-badge-bg)] text-[var(--color-badge-text)]";
   }
 
-  return "neutral";
+  return "text-[var(--color-text-secondary)]";
+}
+
+function SearchFieldIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      width="16"
+      height="16"
+      className="pointer-events-none absolute left-[12px] top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[var(--color-text-muted)]"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8.5" cy="8.5" r="5.5" />
+      <path d="m14 14 3.5 3.5" />
+    </svg>
+  );
+}
+
+function ClearFiltersIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width="18"
+      height="18"
+      className="block h-[18px] w-[18px] shrink-0"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function RemoveBookIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width="18"
+      height="18"
+      className="block h-[18px] w-[18px] shrink-0"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
 }
 
 export function LibraryView({ onOpenReader }: LibraryViewProps) {
@@ -161,7 +231,6 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
   const [selectedFormat, setSelectedFormat] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("all");
   const [selectedAuthor, setSelectedAuthor] = useState("all");
-  const [activeCollection, setActiveCollection] = useState<LibraryCollection>("all");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(initialPreferences.viewMode);
   const [sortField, setSortField] = useState<LibrarySortField>(initialPreferences.sortField);
   const [sortDirection, setSortDirection] = useState<SortDirection>(initialPreferences.sortDirection);
@@ -236,35 +305,6 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
     };
   }, [pendingRemovalBook]);
 
-  const collectionOptions = useMemo(() => {
-    const now = Date.now();
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-
-    const recentCount = books.filter((book) => now - toComparableDate(book.created_at) <= thirtyDaysMs).length;
-    const withoutAuthorCount = books.filter((book) => normalizeText(book.author).length === 0).length;
-
-    return [
-      {
-        id: "all" as const,
-        label: "Todos os livros",
-        count: books.length,
-      },
-      {
-        id: "recent" as const,
-        label: "Adicionados recentemente",
-        count: recentCount,
-      },
-      {
-        id: "without-author" as const,
-        label: "Sem autor",
-        count: withoutAuthorCount,
-      },
-    ];
-  }, [books]);
-
-  const activeCollectionLabel =
-    collectionOptions.find((collection) => collection.id === activeCollection)?.label ?? "Todos os livros";
-
   const availableFormats = useMemo(() => {
     const formats = new Set(books.map((book) => book.format.toLowerCase()));
     return Array.from(formats).sort();
@@ -283,6 +323,33 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
       left.localeCompare(right, "pt-BR", { sensitivity: "base" }),
     );
   }, [books]);
+
+  const formatCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const book of books) {
+      const normalizedFormat = book.format.toLowerCase();
+      counts.set(normalizedFormat, (counts.get(normalizedFormat) ?? 0) + 1);
+    }
+    return counts;
+  }, [books]);
+
+  const statusCounts = useMemo(() => {
+    const counts = new Map<BookStatus, number>();
+    for (const status of availableStatuses) {
+      counts.set(status, 0);
+    }
+
+    for (const book of books) {
+      const normalizedStatus = normalizeBookStatus(book.status) as BookStatus;
+      if (!counts.has(normalizedStatus)) {
+        continue;
+      }
+
+      counts.set(normalizedStatus, (counts.get(normalizedStatus) ?? 0) + 1);
+    }
+
+    return counts;
+  }, [availableStatuses, books]);
 
   useEffect(() => {
     if (selectedFormat !== "all" && !availableFormats.includes(selectedFormat)) {
@@ -304,22 +371,7 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
 
   const filteredBooks = useMemo(() => {
     const normalizedSearch = normalizeText(debouncedSearch);
-    const now = Date.now();
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-
-    const scopedBooks = books.filter((book) => {
-      if (activeCollection === "recent") {
-        return now - toComparableDate(book.created_at) <= thirtyDaysMs;
-      }
-
-      if (activeCollection === "without-author") {
-        return normalizeText(book.author).length === 0;
-      }
-
-      return true;
-    });
-
-    const filtered = scopedBooks.filter((book) => {
+    const filtered = books.filter((book) => {
       if (
         normalizedSearch.length > 0 &&
         !normalizeText(book.title).includes(normalizedSearch) &&
@@ -363,7 +415,6 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
       return sortDirection === "asc" ? comparison : -comparison;
     });
   }, [
-    activeCollection,
     books,
     debouncedSearch,
     selectedAuthor,
@@ -379,15 +430,13 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
     setSelectedFormat("all");
     setSelectedStatus("all");
     setSelectedAuthor("all");
-    setActiveCollection("all");
   };
 
   const hasActiveFilters =
     normalizeText(searchInput).length > 0 ||
     selectedFormat !== "all" ||
     selectedStatus !== "all" ||
-    selectedAuthor !== "all" ||
-    activeCollection !== "all";
+    selectedAuthor !== "all";
 
   const requestBookRemoval = (book: Book) => {
     setPendingRemovalBook(book);
@@ -420,205 +469,217 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
   const isEmptyLibrary = !loading && !error && books.length === 0;
   const isEmptyFiltered = !loading && !error && books.length > 0 && filteredBooks.length === 0;
 
+  const controlFieldClass =
+    "grid min-w-[164px] flex-1 basis-0 gap-[var(--space-6)] text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]";
+  const controlSelectClass =
+    "min-h-[var(--control-height)] rounded-[var(--radius-pill)] border border-black/10 px-[var(--space-12)] text-[14px] font-medium normal-case tracking-normal text-[var(--color-text-primary)] hover:border-black/20";
+  const controlSelectMenuClass =
+    "rounded-[var(--radius-12)] border border-black/10 p-[var(--space-6)]";
+  const controlSelectOptionClass =
+    "rounded-[var(--radius-8)] px-[var(--space-10)] py-[var(--space-8)] text-[13px]";
+
+  const formatOptions: SelectOption[] = [
+    { value: "all", label: `Todos (${books.length})` },
+    ...availableFormats.map((format) => ({
+      value: format,
+      label: `${format.toUpperCase()} (${formatCounts.get(format) ?? 0})`,
+    })),
+  ];
+
+  const statusOptions: SelectOption[] = [
+    { value: "all", label: `Todos (${books.length})` },
+    ...availableStatuses.map((status) => ({
+      value: status,
+      label: `${getBookStatusLabel(status)} (${statusCounts.get(status) ?? 0})`,
+    })),
+  ];
+
+  const authorOptions: SelectOption[] = [
+    { value: "all", label: "Todos" },
+    ...availableAuthors.map((author) => ({
+      value: author,
+      label: author,
+    })),
+  ];
+
+  const sortFieldOptions: SelectOption[] = [
+    { value: "created_at", label: "Data de adição" },
+    { value: "title", label: "Título" },
+    { value: "author", label: "Autor" },
+  ];
+
+  const sortDirectionOptions: SelectOption[] = [
+    { value: "desc", label: "Decrescente" },
+    { value: "asc", label: "Crescente" },
+  ];
+
+  const viewModeOptions: SelectOption[] = [
+    { value: "grid", label: "Grade" },
+    { value: "table", label: "Tabela" },
+  ];
+
   return (
-    <main className="library-screen">
-      <aside className="collection-sidebar">
-        <div>
-          <h2>Coleções</h2>
-          <ul className="collection-list">
-            {collectionOptions.map((collection) => (
-              <li key={collection.id}>
-                <button
-                  type="button"
-                  className={collection.id === activeCollection ? "active" : ""}
-                  onClick={() => setActiveCollection(collection.id)}
-                >
-                  <span>{collection.label}</span>
-                  <small>{collection.count}</small>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3>Filtros</h3>
-          <label>
-            Formato
-            <select value={selectedFormat} onChange={(event) => setSelectedFormat(event.currentTarget.value)}>
-              <option value="all">Todos</option>
-              {availableFormats.map((format) => (
-                <option key={format} value={format}>
-                  {format.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Status
-            <select
-              value={selectedStatus}
-              onChange={(event) => setSelectedStatus(event.currentTarget.value as StatusFilter)}
-            >
-              <option value="all">Todos</option>
-              {availableStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {getBookStatusLabel(status)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Autor
-            <select value={selectedAuthor} onChange={(event) => setSelectedAuthor(event.currentTarget.value)}>
-              <option value="all">Todos</option>
-              {availableAuthors.map((author) => (
-                <option key={author} value={author}>
-                  {author}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button type="button" className="secondary-button compact" onClick={clearAllFilters}>
-            Limpar filtros
-          </button>
-        </div>
-      </aside>
-
-      <section className="library-content-shell">
-        <header className="library-content-header">
-          <div className="library-title-row">
-            <div>
-              <p className="hero-label">Acervo local</p>
-              <h1>Biblioteca</h1>
-              <p>{activeCollectionLabel}</p>
+    <main className="grid min-h-[calc(100vh-140px)] overflow-hidden rounded-[var(--radius-16)] shadow-[var(--shadow-card)]">
+      <section className="grid content-start gap-[var(--space-24)] max-md:p-[var(--space-16)]">
+        <header className="grid gap-[var(--space-16)]">
+          <div className="lx-page-header">
+            <div className="lx-page-header-titles">
+              <h1 className="lx-page-title">Biblioteca</h1>
+              <p className="lx-page-subtitle">
+                {filteredBooks.length} de {books.length} obras · armazenadas localmente
+              </p>
             </div>
 
-            <div className="library-header-actions">
-              <button type="button" className="secondary-button" onClick={() => void loadBooks()}>
+            <div className="lx-page-header-actions">
+              <Button variant="secondary" onClick={() => void loadBooks()}>
                 Recarregar
-              </button>
-              <AddBookButton onBookAdded={loadBooks} label="+ Adicionar livro" className="primary-button" />
+              </Button>
+              <AddBookButton onBookAdded={loadBooks} label="+ Adicionar" />
             </div>
           </div>
 
-          <section className="library-topbar-actions panel">
-            <label className="search-input-wrap">
-              <span>Busca textual</span>
-              <div className="library-search-input-shell">
-                <input
-                  value={searchInput}
-                  onChange={(event) => setSearchInput(event.currentTarget.value)}
-                  placeholder="Buscar por título ou autor..."
-                />
-                {normalizeText(searchInput).length > 0 && (
-                  <button
-                    type="button"
-                    className="search-clear-button"
-                    onClick={() => {
-                      setSearchInput("");
-                      setDebouncedSearch("");
-                    }}
-                  >
-                    Limpar
-                  </button>
-                )}
+          <Panel
+            className="grid gap-[var(--space-12)] !p-0"
+          >
+            <label className="m-0 grid gap-[var(--space-8)] text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+              <div className="flex items-center gap-[var(--space-8)]">
+                <div className="relative min-w-0 flex-1">
+                  <SearchFieldIcon />
+                  <Input
+                    type="search"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.currentTarget.value)}
+                    placeholder="Buscar por título ou autor"
+                    className="h-[40px] min-h-[40px] rounded-[var(--radius-pill)] border-black/15 pl-[34px]"
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-[40px] min-h-[40px] w-[40px] min-w-[40px] max-h-[40px] max-w-[40px] flex-none rounded-[var(--radius-pill)] p-0 [&_svg]:h-[18px] [&_svg]:w-[18px]"
+                  aria-label="Limpar filtros"
+                  title="Limpar filtros"
+                  onClick={clearAllFilters}
+                  disabled={!hasActiveFilters}
+                >
+                  <ClearFiltersIcon />
+                </Button>
               </div>
             </label>
 
-            <div className="library-actions-row">
-              <div className="library-sort-control" role="group" aria-label="Ordenação da biblioteca">
-                <label htmlFor="library-sort-field" className="sr-only">
-                  Ordenar por
-                </label>
-                <select
+            <div className="m-0 flex flex-wrap items-end justify-start gap-[var(--space-12)] pl-0">
+              <label className={controlFieldClass}>
+                Formato
+                <CustomSelect
+                  triggerClassName={controlSelectClass}
+                  menuClassName={controlSelectMenuClass}
+                  optionClassName={controlSelectOptionClass}
+                  value={selectedFormat}
+                  options={formatOptions}
+                  onValueChange={setSelectedFormat}
+                />
+              </label>
+
+              <label className={controlFieldClass}>
+                Status
+                <CustomSelect
+                  triggerClassName={controlSelectClass}
+                  menuClassName={controlSelectMenuClass}
+                  optionClassName={controlSelectOptionClass}
+                  value={selectedStatus}
+                  options={statusOptions}
+                  onValueChange={(nextValue) => setSelectedStatus(nextValue as StatusFilter)}
+                />
+              </label>
+
+              <label className={controlFieldClass}>
+                Autor
+                <CustomSelect
+                  triggerClassName={controlSelectClass}
+                  menuClassName={controlSelectMenuClass}
+                  optionClassName={controlSelectOptionClass}
+                  value={selectedAuthor}
+                  options={authorOptions}
+                  onValueChange={setSelectedAuthor}
+                />
+              </label>
+
+              <label htmlFor="library-sort-field" className={controlFieldClass}>
+                Ordenar por
+                <CustomSelect
                   id="library-sort-field"
+                  triggerClassName={controlSelectClass}
+                  menuClassName={controlSelectMenuClass}
+                  optionClassName={controlSelectOptionClass}
                   value={sortField}
-                  onChange={(event) => setSortField(event.currentTarget.value as LibrarySortField)}
-                >
-                  <option value="created_at">Data de adição</option>
-                  <option value="title">Título</option>
-                  <option value="author">Autor</option>
-                </select>
-                <button
-                  type="button"
-                  className="library-sort-direction"
-                  onClick={() => setSortDirection((previous) => (previous === "asc" ? "desc" : "asc"))}
-                >
-                  {sortDirection === "asc" ? "Crescente" : "Decrescente"}
-                </button>
-              </div>
+                  options={sortFieldOptions}
+                  onValueChange={(nextValue) => setSortField(nextValue as LibrarySortField)}
+                />
+              </label>
 
-              <div className="view-switch" role="group" aria-label="Alternar visualização">
-                <button
-                  type="button"
-                  className={viewMode === "grid" ? "active" : ""}
-                  aria-pressed={viewMode === "grid"}
-                  onClick={() => setViewMode("grid")}
-                >
-                  Grid
-                </button>
-                <button
-                  type="button"
-                  className={viewMode === "list" ? "active" : ""}
-                  aria-pressed={viewMode === "list"}
-                  onClick={() => setViewMode("list")}
-                >
-                  Lista
-                </button>
-                <button
-                  type="button"
-                  className={viewMode === "table" ? "active" : ""}
-                  aria-pressed={viewMode === "table"}
-                  onClick={() => setViewMode("table")}
-                >
-                  Tabela
-                </button>
-              </div>
+              <label className={controlFieldClass}>
+                Direção
+                <CustomSelect
+                  triggerClassName={controlSelectClass}
+                  menuClassName={controlSelectMenuClass}
+                  optionClassName={controlSelectOptionClass}
+                  value={sortDirection}
+                  options={sortDirectionOptions}
+                  onValueChange={(nextValue) => setSortDirection(nextValue as SortDirection)}
+                />
+              </label>
 
-              {hasActiveFilters && (
-                <button type="button" className="secondary-button" onClick={clearAllFilters}>
-                  Limpar filtros
-                </button>
-              )}
+              <label className={controlFieldClass}>
+                Visualização
+                <CustomSelect
+                  triggerClassName={controlSelectClass}
+                  menuClassName={controlSelectMenuClass}
+                  optionClassName={controlSelectOptionClass}
+                  value={viewMode}
+                  options={viewModeOptions}
+                  onValueChange={(nextValue) => setViewMode(nextValue as LibraryViewMode)}
+                />
+              </label>
             </div>
-          </section>
+          </Panel>
         </header>
 
-        {loading && <p className="state-message">Carregando livros...</p>}
-        {error && <p className="state-message error">{error}</p>}
+        {loading && <StateMessage>Carregando livros...</StateMessage>}
+        {error && <StateMessage tone="error">{error}</StateMessage>}
 
         {isEmptyLibrary && (
-          <section className="empty-state">
-            <h2>Sua biblioteca está vazia</h2>
-            <p>Adicione seu primeiro EPUB ou PDF para iniciar seu acervo local.</p>
-            <AddBookButton
-              onBookAdded={loadBooks}
-              label="Adicionar primeiro livro"
-              className="primary-button empty-state-cta"
-            />
-          </section>
+          <EmptyState
+            title="Sua biblioteca está vazia"
+            description="Adicione seu primeiro EPUB ou PDF para iniciar seu acervo local."
+            action={
+              <AddBookButton
+                onBookAdded={loadBooks}
+                label="Adicionar primeiro livro"
+                className="min-h-14"
+              />
+            }
+          />
         )}
 
         {isEmptyFiltered && (
-          <section className="empty-state slim">
-            <h2>Nenhum resultado com os filtros atuais</h2>
-            <p>Limpe os filtros para visualizar todos os livros.</p>
-            <button type="button" className="secondary-button" onClick={clearAllFilters}>
-              Limpar filtros
-            </button>
-          </section>
+          <EmptyState
+            compact
+            title="Nenhum resultado com os filtros atuais"
+            description="Limpe os filtros para visualizar todos os livros."
+            action={
+              <Button variant="secondary" onClick={clearAllFilters}>
+                Limpar filtros
+              </Button>
+            }
+          />
         )}
 
-        {!loading && !error && filteredBooks.length > 0 && viewMode !== "table" && (
-          <section className={`book-grid-layout ${viewMode === "list" ? "list" : ""}`}>
+        {!loading && !error && filteredBooks.length > 0 && viewMode === "grid" && (
+          <section className="grid gap-x-[var(--space-20)] gap-y-[var(--space-28)] [grid-template-columns:repeat(auto-fill,minmax(164px,1fr))]">
             {filteredBooks.map((book) => (
               <article
                 key={book.id}
-                className={`book-card-v2 ${viewMode === "list" ? "list" : ""}`}
+                className="group grid cursor-pointer gap-[var(--space-12)] rounded-[var(--radius-12)] p-[var(--space-4)] transition-transform duration-150 hover:-translate-y-[2px]"
                 onClick={() => onOpenReader(String(book.id))}
                 role="button"
                 tabIndex={0}
@@ -630,44 +691,21 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
                   }
                 }}
               >
-                <div className="book-cover-placeholder">{book.format.toUpperCase()}</div>
+                <BookCover
+                  title={book.title}
+                  author={book.author}
+                  format={book.format}
+                  size="md"
+                  className="rounded-[var(--radius-12)]"
+                />
 
-                <div className="book-card-main">
-                  <h3>{book.title}</h3>
-                  <p className="book-card-author">{book.author ?? "Autor desconhecido"}</p>
-                  <p className="book-card-status">
-                    <span className={`book-status-badge ${getBookStatusTone(book.status)}`}>
-                      {getBookStatusLabel(book.status)}
-                    </span>
-                    <span className="book-format-chip">{book.format.toUpperCase()}</span>
+                <div className="grid gap-[var(--space-4)] px-[var(--space-2)]">
+                  <h3 className="m-0 overflow-hidden text-[16px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--color-text-primary)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                    {book.title}
+                  </h3>
+                  <p className="m-0 overflow-hidden text-[13px] leading-[1.4] text-[var(--color-text-muted)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:1]">
+                    {book.author ?? "Autor desconhecido"}
                   </p>
-
-                  <p className="book-card-progress">Adicionado em {formatBookDate(book.created_at)}</p>
-
-                  <div className="book-card-actions-row">
-                    <button
-                      type="button"
-                      className={`${viewMode === "grid" ? "secondary-button" : "primary-button"} compact`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onOpenReader(String(book.id));
-                      }}
-                    >
-                      {normalizeBookStatus(book.status) === "unread" ? "Ler agora" : "Retomar leitura"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="secondary-button danger compact"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        requestBookRemoval(book);
-                      }}
-                      disabled={removingBookId === book.id}
-                    >
-                      {removingBookId === book.id ? "Removendo..." : "Remover"}
-                    </button>
-                  </div>
                 </div>
               </article>
             ))}
@@ -675,95 +713,145 @@ export function LibraryView({ onOpenReader }: LibraryViewProps) {
         )}
 
         {!loading && !error && filteredBooks.length > 0 && viewMode === "table" && (
-          <section className="book-table-shell panel">
-            <table className="book-table">
+          <Panel className="overflow-x-auto p-0">
+            <table className="w-full min-w-[760px] border-collapse max-md:min-w-[680px] max-[600px]:min-w-[620px]">
               <thead>
                 <tr>
-                  <th>Título</th>
-                  <th>Autor</th>
-                  <th>Formato</th>
-                  <th>Status</th>
-                  <th>Adição</th>
-                  <th aria-label="Ações" />
+                  <th className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-left text-[12px] font-semibold uppercase leading-[1.33] tracking-[0.125px] text-[var(--color-text-muted)]">
+                    Título
+                  </th>
+                  <th className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-left text-[12px] font-semibold uppercase leading-[1.33] tracking-[0.125px] text-[var(--color-text-muted)]">
+                    Autor
+                  </th>
+                  <th className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-left text-[12px] font-semibold uppercase leading-[1.33] tracking-[0.125px] text-[var(--color-text-muted)]">
+                    Formato
+                  </th>
+                  <th className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-left text-[12px] font-semibold uppercase leading-[1.33] tracking-[0.125px] text-[var(--color-text-muted)]">
+                    Status
+                  </th>
+                  <th className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-left text-[12px] font-semibold uppercase leading-[1.33] tracking-[0.125px] text-[var(--color-text-muted)]">
+                    Adição
+                  </th>
+                  <th
+                    aria-label="Ações"
+                    className="min-w-[200px] border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-right text-[12px] font-semibold uppercase leading-[1.33] tracking-[0.125px] text-[var(--color-text-muted)]"
+                  />
                 </tr>
               </thead>
               <tbody>
                 {filteredBooks.map((book) => (
-                  <tr key={book.id}>
-                    <td>{book.title}</td>
-                    <td>{book.author ?? "Autor desconhecido"}</td>
-                    <td>{book.format.toUpperCase()}</td>
-                    <td>
-                      <span className={`book-status-badge ${getBookStatusTone(book.status)}`}>
+                  <tr
+                    key={book.id}
+                    className="cursor-pointer transition-colors hover:bg-[var(--color-control-secondary-bg)] focus-within:bg-[var(--color-control-secondary-bg)]"
+                    tabIndex={0}
+                    aria-label={`Abrir ${book.title}`}
+                    onClick={(event) => {
+                      const target = event.target as HTMLElement;
+                      if (target.closest("button, a, input, select, textarea")) {
+                        return;
+                      }
+
+                      onOpenReader(String(book.id));
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onOpenReader(String(book.id));
+                      }
+                    }}
+                  >
+                    <td className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-[14px] font-semibold leading-[1.43] text-[var(--color-text-primary)]">
+                      {book.title}
+                    </td>
+                    <td className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+                      {book.author ?? "Autor desconhecido"}
+                    </td>
+                    <td className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+                      {book.format.toUpperCase()}
+                    </td>
+                    <td className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-[var(--radius-pill)] border border-black/10 px-[var(--space-8)] py-[var(--space-2)] text-[12px] font-semibold leading-[1.33] tracking-[0.125px]",
+                          getBookStatusToneClass(book.status),
+                        )}
+                      >
                         {getBookStatusLabel(book.status)}
                       </span>
                     </td>
-                    <td>{formatBookDate(book.created_at)}</td>
-                    <td>
-                      <div className="book-table-actions">
-                        <button
-                          type="button"
-                          className="secondary-button compact"
-                          onClick={() => onOpenReader(String(book.id))}
-                        >
-                          Abrir
-                        </button>
-                        <button
-                          type="button"
-                          className="secondary-button danger compact"
-                          onClick={() => requestBookRemoval(book)}
+                    <td className="border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+                      {formatBookDate(book.created_at)}
+                    </td>
+                    <td className="min-w-[200px] border-b border-black/10 px-[var(--space-16)] py-[var(--space-12)] text-right text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+                      <div className="flex flex-wrap justify-end gap-[var(--space-8)] max-[600px]:flex-col max-[600px]:items-stretch">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="h-[32px] min-h-[32px] w-[32px] min-w-[32px] rounded-[var(--radius-pill)] p-0 [&_svg]:h-[18px] [&_svg]:w-[18px]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            requestBookRemoval(book);
+                          }}
+                          aria-label={`Remover ${book.title}`}
+                          title={`Remover ${book.title}`}
                           disabled={removingBookId === book.id}
                         >
-                          {removingBookId === book.id ? "Removendo..." : "Remover"}
-                        </button>
+                          {removingBookId === book.id ? (
+                            <span
+                              className="h-[14px] w-[14px] animate-spin rounded-full border-2 border-current border-t-transparent"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <RemoveBookIcon />
+                          )}
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </section>
+          </Panel>
         )}
 
         {pendingRemovalBook && (
-          <div className="confirm-overlay" role="presentation">
-            <section
-              className="confirm-dialog panel"
+          <div
+            className="fixed inset-0 z-40 grid place-items-center bg-[rgba(12,20,28,0.45)] p-[var(--space-16)]"
+            role="presentation"
+          >
+            <Panel
+              as="section"
+              className="z-10 grid w-full max-w-[520px] gap-[var(--space-12)] rounded-[var(--radius-16)] border border-black/10  p-[var(--space-24)] shadow-[var(--shadow-card)]"
               role="dialog"
               aria-modal="true"
               aria-labelledby="confirm-remove-book-title"
             >
-              <h3 id="confirm-remove-book-title">Remover livro da biblioteca</h3>
-              <p>
+              <h3
+                id="confirm-remove-book-title"
+                className="m-0 text-[22px] font-[var(--type-sub-weight)] leading-[1.25] tracking-[var(--type-sub-track)]"
+              >
+                Remover livro da biblioteca
+              </h3>
+              <p className="m-0 text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
                 Deseja remover "{pendingRemovalBook.title}" da biblioteca? Esta ação não pode ser
                 desfeita.
               </p>
-              <p>Você também pode excluir o arquivo do disco nesta etapa.</p>
+              <p className="m-0 text-[14px] leading-[1.43] text-[var(--color-text-secondary)]">
+                Você também pode excluir o arquivo do disco nesta etapa.
+              </p>
 
-              <div className="confirm-dialog-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setPendingRemovalBook(null)}
-                >
+              <div className="mt-[var(--space-8)] flex flex-wrap justify-end gap-[var(--space-8)] max-[560px]:flex-col max-[560px]:items-stretch">
+                <Button variant="secondary" onClick={() => setPendingRemovalBook(null)}>
                   Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => void executeBookRemoval(false)}
-                >
+                </Button>
+                <Button variant="secondary" onClick={() => void executeBookRemoval(false)}>
                   Apenas remover
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button danger"
-                  onClick={() => void executeBookRemoval(true)}
-                >
+                </Button>
+                <Button variant="danger" onClick={() => void executeBookRemoval(true)}>
                   Remover e excluir arquivo
-                </button>
+                </Button>
               </div>
-            </section>
+            </Panel>
           </div>
         )}
       </section>

@@ -12,7 +12,7 @@
 - Fontes externas acessadas apenas por addons instalados manualmente pelo usuario.
 
 ## Recurso local do projeto
-- Pasta IA na raiz contem historico removido do runtime ativo.
+- Conteudo historico de IA nao faz parte do runtime ativo deste workspace.
 
 ## Uso recomendado
 - Verificar primeiro docs internos antes de abrir referencia externa.

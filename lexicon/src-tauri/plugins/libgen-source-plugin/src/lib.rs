@@ -17,6 +17,8 @@ const SOURCE_ID: &str = "libgen";
 const LIBGEN_BASE_URL: &str = "https://libgen.li";
 const REQUEST_TIMEOUT_MS: u64 = 20_000;
 const MAX_RESULTS: usize = 40;
+const MAX_ROWS_TO_SCAN: usize = 220;
+const MAX_EXPENSIVE_RESOLUTIONS: usize = 5;
 const QUERY_ATTEMPT_DELAY_MS: u64 = 450;
 
 #[derive(Debug, Clone)]
@@ -103,17 +105,23 @@ fn build_search_attempts(request: &SourceSearchQuery) -> Vec<SearchAttempt> {
     let mut attempts = Vec::new();
     let mut seen = HashSet::new();
 
-    for isbn in extract_isbn_candidates(request.isbn.as_deref()) {
-        push_search_attempt(
-            &mut attempts,
-            &mut seen,
-            isbn,
-            // ISBN rows often do not include the literal ISBN text in the title cell.
-            Vec::new(),
-        );
+    let title = request.title.trim();
+
+    // ISBN-first search has proven unstable for some LibGen payloads in WASM.
+    // When we already have a title, prefer title/author queries and use ISBN only
+    // for result prioritization later.
+    if title.is_empty() {
+        for isbn in extract_isbn_candidates(request.isbn.as_deref()) {
+            push_search_attempt(
+                &mut attempts,
+                &mut seen,
+                isbn,
+                // ISBN rows often do not include the literal ISBN text in the title cell.
+                Vec::new(),
+            );
+        }
     }
 
-    let title = request.title.trim();
     let author = request
         .author
         .as_deref()
@@ -289,18 +297,30 @@ fn parse_search_results(
         .map_err(|err| PluginError::ParsingFailure(format!("invalid link selector: {}", err)))?;
 
     let mut results = Vec::new();
+    let mut scanned_rows = 0usize;
+    let mut expensive_resolutions = 0usize;
+    let allow_expensive_resolution = !query_terms.is_empty();
 
     for row in document.select(&row_selector) {
         if results.len() >= MAX_RESULTS {
             break;
         }
 
+        if scanned_rows >= MAX_ROWS_TO_SCAN {
+            break;
+        }
+        scanned_rows += 1;
+
         let cells = row.select(&cell_selector).collect::<Vec<_>>();
         if cells.len() < 8 {
             continue;
         }
 
-        let Some(title_link) = cells[0].select(&edition_link_selector).next() else {
+        let Some(title_cell) = cells.first() else {
+            continue;
+        };
+
+        let Some(title_link) = title_cell.select(&edition_link_selector).next() else {
             continue;
         };
 
@@ -317,17 +337,26 @@ fn parse_search_results(
         let edition_href = title_link.value().attr("href").unwrap_or("").trim();
         let edition_id = extract_query_param(edition_href, "id").unwrap_or_default();
 
-        let format = clean_text_from_node(&cells[7]).to_ascii_lowercase();
+        let Some(format_cell) = cells.get(7) else {
+            continue;
+        };
+
+        let format = clean_text_from_node(format_cell).to_ascii_lowercase();
         if format.is_empty() {
             continue;
         }
 
-        let size = cells.get(5).map(clean_text_from_node).filter(|value| !value.is_empty());
-        let language = cells.get(6).map(clean_text_from_node).filter(|value| !value.is_empty());
-        let mut quality = Some(title.clone());
-        if let Some(edition) = cells.get(3).map(clean_text_from_node).filter(|value| !value.is_empty()) {
-            quality = Some(format!("{} | {}", title, edition));
-        }
+        // LibGen current table order: Language (4), Pages (5), Size (6), Ext (7).
+        let language = cells
+            .get(4)
+            .map(clean_text_from_node)
+            .and_then(|value| normalize_language_hint(&value));
+        let page_count = cells
+            .get(5)
+            .map(clean_text_from_node)
+            .and_then(|value| parse_page_count(&value));
+        let size = cells.get(6).map(clean_text_from_node).filter(|value| !value.is_empty());
+        let quality = build_quality_metadata(page_count, &title);
 
         if !query_terms.is_empty() {
             let mut haystack = title.to_ascii_lowercase();
@@ -355,12 +384,29 @@ fn parse_search_results(
             format!("{}/edition.php?id={}", LIBGEN_BASE_URL, edition_id)
         };
 
-        let resolved = if edition_id.is_empty() {
+        let resolved = if !allow_expensive_resolution {
+            if let Some(inline) = inline_candidate.as_deref() {
+                if looks_like_get_link(inline) {
+                    inline.to_string()
+                } else {
+                    fallback_url
+                }
+            } else {
+                fallback_url
+            }
+        } else if edition_id.is_empty() {
             inline_candidate
                 .as_deref()
                 .and_then(resolve_download_candidate)
                 .unwrap_or(fallback_url)
+        } else if expensive_resolutions >= MAX_EXPENSIVE_RESOLUTIONS {
+            if let Some(inline) = inline_candidate.as_deref() {
+                resolve_download_candidate(inline).unwrap_or_else(|| inline.to_string())
+            } else {
+                fallback_url
+            }
         } else {
+            expensive_resolutions += 1;
             resolve_download_url(&edition_id, inline_candidate.as_deref()).unwrap_or(fallback_url)
         };
 
@@ -450,110 +496,27 @@ fn resolve_download_from_ads_page(ads_url_or_href: &str) -> Option<String> {
 }
 
 fn extract_get_href_from_html(html: &str) -> Option<String> {
-    if let Some(raw) = extract_raw_link_by_prefix(html, "get.php?md5=") {
+    if let Some(raw) = extract_href_containing(html, "get.php?md5=") {
         return Some(raw);
     }
 
     extract_href_containing(html, "get.php")
 }
 
-fn extract_raw_link_by_prefix(html: &str, prefix: &str) -> Option<String> {
-    let lower_html = html.to_ascii_lowercase();
-    let lower_prefix = prefix.to_ascii_lowercase();
-    let start = lower_html.find(&lower_prefix)?;
-    let tail = &html[start..];
-
-    let mut end = tail.len();
-    for (index, ch) in tail.char_indices() {
-        if index == 0 {
-            continue;
-        }
-
-        if ch == '\'' || ch == '"' || ch == '<' || ch.is_whitespace() {
-            end = index;
-            break;
-        }
-    }
-
-    let link = tail[..end].trim();
-    if link.is_empty() {
-        return None;
-    }
-
-    Some(link.to_string())
-}
-
 fn extract_href_containing(html: &str, needle: &str) -> Option<String> {
-    let lower_html = html.to_ascii_lowercase();
-    let lower_needle = needle.to_ascii_lowercase();
-    let bytes = lower_html.as_bytes();
+    let document = Html::parse_document(html);
+    let selector = Selector::parse("a[href]").ok()?;
+    let needle_lc = needle.to_ascii_lowercase();
 
-    let mut cursor = 0usize;
-    while cursor < bytes.len() {
-        let Some(found_rel) = lower_html[cursor..].find("href") else {
-            break;
-        };
-
-        let href_start = cursor + found_rel;
-        let mut value_cursor = href_start + 4;
-
-        while value_cursor < bytes.len() && (bytes[value_cursor] as char).is_ascii_whitespace() {
-            value_cursor += 1;
-        }
-
-        if value_cursor >= bytes.len() || bytes[value_cursor] != b'=' {
-            cursor = value_cursor.saturating_add(1);
+    for link in document.select(&selector) {
+        let href = link.value().attr("href").unwrap_or("").trim();
+        if href.is_empty() {
             continue;
         }
-        value_cursor += 1;
 
-        while value_cursor < bytes.len() && (bytes[value_cursor] as char).is_ascii_whitespace() {
-            value_cursor += 1;
+        if href.to_ascii_lowercase().contains(&needle_lc) {
+            return Some(href.to_string());
         }
-
-        if value_cursor >= bytes.len() {
-            break;
-        }
-
-        let (content_start, content_end, next_cursor) = match bytes[value_cursor] {
-            b'\'' => {
-                let start = value_cursor + 1;
-                let end = lower_html[start..]
-                    .find('\'')
-                    .map(|offset| start + offset)
-                    .unwrap_or(bytes.len());
-                (start, end, end.saturating_add(1))
-            }
-            b'"' => {
-                let start = value_cursor + 1;
-                let end = lower_html[start..]
-                    .find('"')
-                    .map(|offset| start + offset)
-                    .unwrap_or(bytes.len());
-                (start, end, end.saturating_add(1))
-            }
-            _ => {
-                let start = value_cursor;
-                let mut end = start;
-                while end < bytes.len() {
-                    let ch = bytes[end] as char;
-                    if ch.is_ascii_whitespace() || ch == '>' {
-                        break;
-                    }
-                    end += 1;
-                }
-                (start, end, end)
-            }
-        };
-
-        if content_start < content_end && content_end <= html.len() {
-            let href = html[content_start..content_end].trim();
-            if !href.is_empty() && href.to_ascii_lowercase().contains(&lower_needle) {
-                return Some(href.to_string());
-            }
-        }
-
-        cursor = next_cursor;
     }
 
     None
@@ -562,10 +525,6 @@ fn extract_href_containing(html: &str, needle: &str) -> Option<String> {
 fn resolve_download_candidate(candidate: &str) -> Option<String> {
     if looks_like_get_link(candidate) {
         return Some(candidate.to_string());
-    }
-
-    if candidate.to_ascii_lowercase().contains("ads.php?md5=") {
-        return resolve_download_from_ads_page(candidate);
     }
 
     None
@@ -589,6 +548,90 @@ fn looks_like_get_link(url: &str) -> bool {
 fn clean_text_from_node(node: &ElementRef<'_>) -> String {
     node.text()
         .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn normalize_language_hint(raw: &str) -> Option<String> {
+    let token = raw
+        .split(|ch| ch == ';' || ch == ',' || ch == '/')
+        .next()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?
+        .to_ascii_lowercase();
+
+    if token == "pt" || token == "por" || token.starts_with("portugu") {
+        return Some("pt".to_string());
+    }
+
+    if token == "en" || token == "eng" || token.starts_with("english") {
+        return Some("en".to_string());
+    }
+
+    if token == "es" || token == "spa" || token.starts_with("spanish") {
+        return Some("es".to_string());
+    }
+
+    if token == "fr" || token == "fre" || token == "fra" || token.starts_with("french") {
+        return Some("fr".to_string());
+    }
+
+    if token == "de" || token == "ger" || token == "deu" || token.starts_with("german") {
+        return Some("de".to_string());
+    }
+
+    if token == "it" || token == "ita" || token.starts_with("italian") {
+        return Some("it".to_string());
+    }
+
+    if token == "ru" || token == "rus" || token.starts_with("russian") {
+        return Some("ru".to_string());
+    }
+
+    if token == "ja" || token == "jpn" || token.starts_with("japanese") {
+        return Some("ja".to_string());
+    }
+
+    if token == "zh" || token == "chi" || token == "zho" || token.starts_with("chinese") {
+        return Some("zh".to_string());
+    }
+
+    Some(token.chars().take(2).collect())
+}
+
+fn parse_page_count(raw: &str) -> Option<u32> {
+    let digits = raw
+        .chars()
+        .filter(|ch| ch.is_ascii_digit())
+        .collect::<String>();
+
+    digits.parse::<u32>().ok().filter(|value| *value > 0)
+}
+
+fn build_quality_metadata(page_count: Option<u32>, title: &str) -> Option<String> {
+    let mut fields = Vec::new();
+
+    if let Some(page_count) = page_count {
+        fields.push(format!("pages:{}", page_count));
+    }
+
+    let normalized_title = sanitize_quality_value(title);
+    if !normalized_title.is_empty() {
+        fields.push(format!("name:{}", normalized_title));
+    }
+
+    if fields.is_empty() {
+        return None;
+    }
+
+    Some(fields.join("|"))
+}
+
+fn sanitize_quality_value(raw: &str) -> String {
+    raw.replace('|', " ")
+        .replace('\n', " ")
+        .replace('\r', " ")
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")

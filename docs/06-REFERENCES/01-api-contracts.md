@@ -11,9 +11,11 @@
 ### Leitura
 - get_book_content(book_id, chapter_index) -> BookContent
 - get_pdf_document(book_id) -> PdfDocumentData
+- resolve_epub_link_target(book_id, chapter_index, href) -> EpubLinkTarget
 - save_progress(book_id, chapter_index, scroll_position?) -> void
 - BookContent inclui metadados de formato: book_format, book_file_path?, supports_annotations.
 - chapter_index representa capítulo (EPUB) ou página base-zero (PDF).
+- EpubLinkTarget inclui chapter_index e anchor_id? para navegacao interna de links no EPUB.
 
 ### Anotacoes
 - add_annotation(book_id, annotation) -> Annotation
@@ -22,12 +24,9 @@
 - update_annotation_color(id, color) -> void
 - delete_annotation(id) -> void
 
-### Busca
-- search_books(query) -> SearchBookResult[]
-
 ### Discover
 - list_discover_catalogs() -> DiscoverCatalog[]
-- list_discover_catalog_items(plugin_id, catalog_id, skip?, page_size?, genre?, year?) -> DiscoverCatalogPageResponse
+- list_discover_catalog_items(plugin_id, catalog_id, skip?, page_size?, genre?, year?, search_query?) -> DiscoverCatalogPageResponse
 - get_discover_item_details(plugin_id, item_id) -> DiscoverItemDetails
 - search_source_downloads(title, author?, isbn?) -> SourceSearchResultGroup[]
 
@@ -55,6 +54,7 @@
 - Erros retornam String na maior parte dos comandos legados.
 - Comandos Discover/Source retornam PluginTypedError (kind + message).
 - IDs de dominio variam entre i64 (book) e String (annotation/download).
+- O endpoint Tauri legado `search_books` foi removido; busca principal e Discover-first.
 
 ## ⚠️ Inconsistências encontradas
 - O comando greet ainda esta registrado em main.rs como utilitario de exemplo e nao pertence ao dominio funcional principal.

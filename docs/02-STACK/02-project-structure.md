@@ -13,7 +13,7 @@
 - components/AnnotationSidebar.tsx: CRUD de nota/cor por anotacao.
 - components/AddBookButton.tsx: entrada de importacao EPUB.
 - components/AddonsView.tsx: instalacao e configuracao manual de addons WASM.
-- hooks/useSearch.ts: consulta de busca externa com react-query.
+- hooks/useSearch.ts: hook legado (nao utilizado no fluxo Discover-first atual).
 - hooks/useAddons.ts: comandos de listagem, instalacao e configuracao de addons.
 - hooks/useDiscover.ts: contratos Discover/Source para catalogos, detalhes e busca de downloads por fonte.
 
@@ -25,15 +25,14 @@
 - db: conexao SQLite e repositorios.
 - models: contratos serializaveis de entrada/saida.
 - reader: parser EPUB e extracao de conteudo.
-- search: orquestracao e fontes de busca.
 - plugins: carregamento e execucao de componentes WASM.
 - download: ator de gerenciamento de fila e progresso.
 
 ## Plugins WASM em lexicon/src-tauri/plugins
-- openlibrary-discover-plugin: catalogos Discover (daily, weekly, subjects).
+- openlibrary-discover-plugin: catalogos Discover (daily, weekly, subjects, gratuitos).
 - libgen-source-plugin: busca de links diretos por title/author/isbn em LibGen.
 - annas-archive-source-plugin: busca de links diretos por title/author/isbn em Anna's Archive.
-- libgen-li-plugin, mock-search-plugin, opds-public-plugin: plugins legados de search_books.
+- libgen-li-plugin, mock-search-plugin, opds-public-plugin: plugins legados de search (compatibilidade interna).
 - build-mock-plugin.sh: build de todos os plugins em plugins/dist.
 
 ## Dados e schema

@@ -26,7 +26,7 @@ pub async fn list_discover_catalogs(
     let discover_plugins = snapshot
         .plugins
         .into_iter()
-        .filter(|plugin| plugin.role == AddonRole::Discover)
+        .filter(|plugin| plugin.role == AddonRole::Discover && plugin.enabled)
         .collect::<Vec<_>>();
 
     if discover_plugins.is_empty() {
@@ -102,6 +102,7 @@ pub async fn list_discover_catalog_items(
     page_size: Option<u32>,
     genre: Option<String>,
     year: Option<u32>,
+    search_query: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<DiscoverCatalogPageResponse, PluginTypedError> {
     let normalized_plugin_id = plugin_id.trim();
@@ -135,6 +136,13 @@ pub async fn list_discover_catalog_items(
             )));
         }
 
+        if !plugin.enabled {
+            return Err(not_found_error(format!(
+                "discover plugin '{}' is disabled",
+                normalized_plugin_id
+            )));
+        }
+
         let snapshot = manager.runtime_snapshot();
         (snapshot.engine, snapshot.fuel_per_invocation, plugin)
     };
@@ -142,6 +150,9 @@ pub async fn list_discover_catalog_items(
     let timeout = resolve_discover_timeout();
     let catalog_id_owned = normalized_catalog_id.to_string();
     let genre_owned = genre.map(|value| value.trim().to_string()).filter(|value| !value.is_empty());
+    let search_query_owned = search_query
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
 
     let worker = tokio::task::spawn_blocking(move || {
         PluginManager::execute_discover_list_catalog_items(
@@ -153,6 +164,7 @@ pub async fn list_discover_catalog_items(
             normalized_page_size,
             genre_owned,
             year,
+            search_query_owned,
         )
     });
 
@@ -192,6 +204,13 @@ pub async fn get_discover_item_details(
         if plugin.role != AddonRole::Discover {
             return Err(not_found_error(format!(
                 "plugin '{}' is not a discover plugin",
+                normalized_plugin_id
+            )));
+        }
+
+        if !plugin.enabled {
+            return Err(not_found_error(format!(
+                "discover plugin '{}' is disabled",
                 normalized_plugin_id
             )));
         }
@@ -248,7 +267,7 @@ pub async fn search_source_downloads(
     let source_plugins = snapshot
         .plugins
         .into_iter()
-        .filter(|plugin| plugin.role == AddonRole::Source)
+        .filter(|plugin| plugin.role == AddonRole::Source && plugin.enabled)
         .collect::<Vec<_>>();
 
     if source_plugins.is_empty() {
@@ -405,7 +424,7 @@ fn resolve_discover_timeout() -> Duration {
 }
 
 fn resolve_source_timeout() -> Duration {
-    resolve_timeout_from_env("LEXICON_SOURCE_PLUGIN_TIMEOUT_MS", 15_000)
+    resolve_timeout_from_env("LEXICON_SOURCE_PLUGIN_TIMEOUT_MS", 60_000)
 }
 
 fn resolve_timeout_from_env(env_key: &str, fallback_ms: u64) -> Duration {
@@ -413,7 +432,7 @@ fn resolve_timeout_from_env(env_key: &str, fallback_ms: u64) -> Duration {
         .ok()
         .and_then(|value| value.trim().parse::<u64>().ok())
         .unwrap_or(fallback_ms)
-        .clamp(1_000, 120_000);
+        .clamp(1_000, 300_000);
 
     Duration::from_millis(timeout_ms)
 }

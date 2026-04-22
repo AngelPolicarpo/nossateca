@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum AddonRole {
     Discover,
     Source,
+    MangaSource,
     LegacySearch,
 }
 
@@ -22,5 +23,6 @@ pub struct AddonDescriptor {
     pub file_name: String,
     pub file_path: String,
     pub role: AddonRole,
+    pub enabled: bool,
     pub settings: Vec<AddonSettingEntry>,
 }

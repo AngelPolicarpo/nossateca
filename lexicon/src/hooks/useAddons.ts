@@ -5,13 +5,14 @@ export type AddonSettingEntry = {
   value: string;
 };
 
-export type AddonRole = "discover" | "source" | "legacy_search";
+export type AddonRole = "discover" | "source" | "manga_source" | "legacy_search";
 
 export type AddonDescriptor = {
   id: string;
   fileName: string;
   filePath: string;
   role: AddonRole;
+  enabled: boolean;
   settings: AddonSettingEntry[];
 };
 
@@ -37,4 +38,8 @@ export async function getAddonSettings(addonId: string) {
 
 export async function updateAddonSettings(addonId: string, settings: AddonSettingEntry[]) {
   return invoke<void>("update_addon_settings", { addonId, settings });
+}
+
+export async function setAddonEnabled(addonId: string, enabled: boolean) {
+  return invoke<AddonDescriptor>("set_addon_enabled", { addonId, enabled });
 }

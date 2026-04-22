@@ -3,8 +3,8 @@ pub mod annotation;
 pub mod book;
 pub mod discover;
 pub mod download;
+pub mod manga;
 pub mod reader;
-pub mod search;
 
 pub use addon::{AddonDescriptor, AddonRole, AddonSettingEntry};
 pub use annotation::{Annotation, NewAnnotation};
@@ -17,5 +17,10 @@ pub use discover::{
 pub use download::{
     DownloadProgressEvent, DownloadRecord, DownloadStateEvent, StartDownloadRequest,
 };
-pub use reader::{BookContent, PdfDocumentData};
-pub use search::SearchBookResult;
+pub use manga::{
+    MangaChapter, MangaChapterGroup, MangaPageList, MangaSourcePluginInfo,
+};
+pub use reader::{
+    BookContent, EpubLinkTarget, EpubSearchMatch, EpubSearchResponse, PdfDocumentData,
+    ReadingProgressData,
+};

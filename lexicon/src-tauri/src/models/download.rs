@@ -27,6 +27,7 @@ pub struct DownloadRecord {
 pub struct StartDownloadRequest {
     pub source_url: String,
     pub file_name: Option<String>,
+    pub subfolder: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

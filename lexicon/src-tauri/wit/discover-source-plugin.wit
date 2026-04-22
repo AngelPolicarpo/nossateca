@@ -52,6 +52,7 @@ interface discover-types {
     cover-url: string,
     genres: list<string>,
     year: option<u32>,
+    page-count: option<u32>,
     short-description: option<string>,
     format: option<string>,
     isbn: option<string>,
@@ -63,6 +64,7 @@ interface discover-types {
     page-size: u32,
     genre: option<string>,
     year: option<u32>,
+    search-query: option<string>,
   }
 
   record discover-catalog-page {
@@ -78,6 +80,7 @@ interface discover-types {
     cover-url: string,
     genres: list<string>,
     year: option<u32>,
+    page-count: option<u32>,
     format: option<string>,
     isbn: option<string>,
     origin-url: option<string>,
@@ -108,6 +111,31 @@ interface source-types {
   }
 }
 
+interface manga-types {
+  use common-types.{plugin-error};
+
+  record manga-source-info {
+    source-name: string,
+    source-id: string,
+  }
+
+  record manga-chapter {
+    id: string,
+    chapter: option<string>,
+    volume: option<string>,
+    title: option<string>,
+    language: option<string>,
+    pages: option<u32>,
+    published-at: option<string>,
+    scanlator: option<string>,
+  }
+
+  record manga-page-list {
+    chapter-id: string,
+    page-urls: list<string>,
+  }
+}
+
 world discover-plugin {
   import host-http;
   use common-types.{plugin-error};
@@ -125,4 +153,14 @@ world source-plugin {
 
   export get-source-info: func() -> source-info;
   export find-downloads: func(request: source-search-query) -> result<list<source-download-result>, plugin-error>;
+}
+
+world manga-source-plugin {
+  import host-http;
+  use common-types.{plugin-error};
+  use manga-types.{manga-source-info, manga-chapter, manga-page-list};
+
+  export get-manga-source-info: func() -> manga-source-info;
+  export list-chapters: func(manga-id: string) -> result<list<manga-chapter>, plugin-error>;
+  export get-chapter-pages: func(chapter-id: string) -> result<manga-page-list, plugin-error>;
 }

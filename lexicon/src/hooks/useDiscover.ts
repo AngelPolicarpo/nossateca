@@ -31,6 +31,7 @@ export type DiscoverCatalogItem = {
   coverUrl: string;
   genres: string[];
   year: number | null;
+  pageCount: number | null;
   shortDescription: string | null;
   format: string | null;
   isbn: string | null;
@@ -52,6 +53,7 @@ export type DiscoverItemDetails = {
   coverUrl: string;
   genres: string[];
   year: number | null;
+  pageCount: number | null;
   format: string | null;
   isbn: string | null;
   originUrl: string | null;
@@ -93,11 +95,13 @@ export function useDiscoverCatalogItems(
   pageSize: number,
   genre: string | null,
   year: number | null,
+  searchQuery: string | null,
   enabled = true,
 ) {
   const normalizedPluginId = pluginId.trim();
   const normalizedCatalogId = catalogId.trim();
   const normalizedGenre = genre?.trim() ?? "";
+  const normalizedSearchQuery = searchQuery?.trim() ?? "";
 
   return useQuery({
     queryKey: [
@@ -109,6 +113,7 @@ export function useDiscoverCatalogItems(
       pageSize,
       normalizedGenre,
       year,
+      normalizedSearchQuery,
     ],
     queryFn: () =>
       invoke<DiscoverCatalogPageResponse>("list_discover_catalog_items", {
@@ -118,6 +123,7 @@ export function useDiscoverCatalogItems(
         pageSize,
         genre: normalizedGenre.length > 0 ? normalizedGenre : null,
         year,
+        searchQuery: normalizedSearchQuery.length > 0 ? normalizedSearchQuery : null,
       }),
     staleTime: STALE_TIME_MS,
     retry: 1,

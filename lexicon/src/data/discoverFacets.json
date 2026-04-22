@@ -1,0 +1,973 @@
+{
+  "version": 1,
+  "subjects": [
+    {
+      "slug": "arts",
+      "label_pt": "Arts",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": true,
+      "aliases": [
+        "art"
+      ]
+    },
+    {
+      "slug": "architecture",
+      "label_pt": "Architecture",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "art__art_instruction",
+      "label_pt": "Art Instruction",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "history_of_art__art__design_styles",
+      "label_pt": "Art History",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": [
+        "art_history"
+      ]
+    },
+    {
+      "slug": "dance",
+      "label_pt": "Dance",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "design",
+      "label_pt": "Design",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "fashion",
+      "label_pt": "Fashion",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "film",
+      "label_pt": "Film",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "graphic_design",
+      "label_pt": "Graphic Design",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "music",
+      "label_pt": "Music",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "music_theory",
+      "label_pt": "Music Theory",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "painting__paintings",
+      "label_pt": "Painting",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": [
+        "painting"
+      ]
+    },
+    {
+      "slug": "photography",
+      "label_pt": "Photography",
+      "group_id": "arts",
+      "group_label_pt": "Arts",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "fiction",
+      "label_pt": "Fiction",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "fantasy",
+      "label_pt": "Fantasy",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "historical_fiction",
+      "label_pt": "Historical Fiction",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "horror",
+      "label_pt": "Horror",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "humor",
+      "label_pt": "Humor",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "literature",
+      "label_pt": "Literature",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "magic",
+      "label_pt": "Magic",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "mystery_and_detective_stories",
+      "label_pt": "Mystery and detective stories",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "plays",
+      "label_pt": "Plays",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "poetry",
+      "label_pt": "Poetry",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "romance",
+      "label_pt": "Romance",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "science_fiction",
+      "label_pt": "Science Fiction",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "short_stories",
+      "label_pt": "Short Stories",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "thriller",
+      "label_pt": "Thriller",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "young_adult_fiction",
+      "label_pt": "Young Adult",
+      "group_id": "fiction",
+      "group_label_pt": "Fiction",
+      "is_category": false,
+      "aliases": [
+        "young_adult"
+      ]
+    },
+    {
+      "slug": "sciencemathematics",
+      "label_pt": "Science & Mathematics",
+      "group_id": "science_mathematics",
+      "group_label_pt": "Science & Mathematics",
+      "is_category": true,
+      "aliases": [
+        "science_and_mathematics"
+      ]
+    },
+    {
+      "slug": "biology",
+      "label_pt": "Biology",
+      "group_id": "science_mathematics",
+      "group_label_pt": "Science & Mathematics",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "chemistry",
+      "label_pt": "Chemistry",
+      "group_id": "science_mathematics",
+      "group_label_pt": "Science & Mathematics",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "mathematics",
+      "label_pt": "Mathematics",
+      "group_id": "science_mathematics",
+      "group_label_pt": "Science & Mathematics",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "physics",
+      "label_pt": "Physics",
+      "group_id": "science_mathematics",
+      "group_label_pt": "Science & Mathematics",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "programming",
+      "label_pt": "Programming",
+      "group_id": "science_mathematics",
+      "group_label_pt": "Science & Mathematics",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "business",
+      "label_pt": "Business & Finance",
+      "group_id": "business_finance",
+      "group_label_pt": "Business & Finance",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "management",
+      "label_pt": "Management",
+      "group_id": "business_finance",
+      "group_label_pt": "Business & Finance",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "entrepreneurship",
+      "label_pt": "Entrepreneurship",
+      "group_id": "business_finance",
+      "group_label_pt": "Business & Finance",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "business__economics",
+      "label_pt": "Business Economics",
+      "group_id": "business_finance",
+      "group_label_pt": "Business & Finance",
+      "is_category": false,
+      "aliases": [
+        "business_economics"
+      ]
+    },
+    {
+      "slug": "success_in_business",
+      "label_pt": "Business Success",
+      "group_id": "business_finance",
+      "group_label_pt": "Business & Finance",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "finance",
+      "label_pt": "Finance",
+      "group_id": "business_finance",
+      "group_label_pt": "Business & Finance",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "juvenile_fiction",
+      "label_pt": "Children's",
+      "group_id": "childrens",
+      "group_label_pt": "Children's",
+      "is_category": true,
+      "aliases": [
+        "children"
+      ]
+    },
+    {
+      "slug": "juvenile_literature",
+      "label_pt": "Kids Books",
+      "group_id": "childrens",
+      "group_label_pt": "Children's",
+      "is_category": false,
+      "aliases": [
+        "kids_books"
+      ]
+    },
+    {
+      "slug": "stories_in_rhyme",
+      "label_pt": "Stories in Rhyme",
+      "group_id": "childrens",
+      "group_label_pt": "Children's",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "infancy",
+      "label_pt": "Baby Books",
+      "group_id": "childrens",
+      "group_label_pt": "Children's",
+      "is_category": false,
+      "aliases": [
+        "baby_books"
+      ]
+    },
+    {
+      "slug": "bedtime",
+      "label_pt": "Bedtime Books",
+      "group_id": "childrens",
+      "group_label_pt": "Children's",
+      "is_category": false,
+      "aliases": [
+        "bedtime_books"
+      ]
+    },
+    {
+      "slug": "picture_books",
+      "label_pt": "Picture Books",
+      "group_id": "childrens",
+      "group_label_pt": "Children's",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "history",
+      "label_pt": "History",
+      "group_id": "history",
+      "group_label_pt": "History",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "ancient_civilization",
+      "label_pt": "Ancient Civilization",
+      "group_id": "history",
+      "group_label_pt": "History",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "archaeology",
+      "label_pt": "Archaeology",
+      "group_id": "history",
+      "group_label_pt": "History",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "anthropology",
+      "label_pt": "Anthropology",
+      "group_id": "history",
+      "group_label_pt": "History",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "world_war_ii",
+      "label_pt": "World War II",
+      "group_id": "history",
+      "group_label_pt": "History",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "social_life_and_customs",
+      "label_pt": "Social Life and Customs",
+      "group_id": "history",
+      "group_label_pt": "History",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "health_wellness",
+      "label_pt": "Health & Wellness",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": true,
+      "aliases": [
+        "health"
+      ]
+    },
+    {
+      "slug": "cooking",
+      "label_pt": "Cooking",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "cookbooks",
+      "label_pt": "Cookbooks",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "mental_health",
+      "label_pt": "Mental Health",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "exercise",
+      "label_pt": "Exercise",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "nutrition",
+      "label_pt": "Nutrition",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "self_help",
+      "label_pt": "Self-help",
+      "group_id": "health_wellness",
+      "group_label_pt": "Health & Wellness",
+      "is_category": false,
+      "aliases": [
+        "self-help"
+      ]
+    },
+    {
+      "slug": "biography",
+      "label_pt": "Biography",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "autobiography",
+      "label_pt": "Autobiographies",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "history",
+      "label_pt": "History",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "politics_and_government",
+      "label_pt": "Politics and Government",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "women",
+      "label_pt": "Women",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "kings_and_rulers",
+      "label_pt": "Kings and Rulers",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "composers",
+      "label_pt": "Composers",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "artists",
+      "label_pt": "Artists",
+      "group_id": "biography",
+      "group_label_pt": "Biography",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "social_science",
+      "label_pt": "Social Science",
+      "group_id": "social_science",
+      "group_label_pt": "Social Science",
+      "is_category": true,
+      "aliases": [
+        "social_sciences"
+      ]
+    },
+    {
+      "slug": "anthropology",
+      "label_pt": "Anthropology",
+      "group_id": "social_science",
+      "group_label_pt": "Social Science",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "religion",
+      "label_pt": "Religion",
+      "group_id": "social_science",
+      "group_label_pt": "Social Science",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "political_science",
+      "label_pt": "Political Science",
+      "group_id": "social_science",
+      "group_label_pt": "Social Science",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "psychology",
+      "label_pt": "Psychology",
+      "group_id": "social_science",
+      "group_label_pt": "Social Science",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "textbooks",
+      "label_pt": "Textbooks",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "history",
+      "label_pt": "History",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "mathematics",
+      "label_pt": "Mathematics",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "geography",
+      "label_pt": "Geography",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "psychology",
+      "label_pt": "Psychology",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "algebra",
+      "label_pt": "Algebra",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "education",
+      "label_pt": "Education",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "business__economics",
+      "label_pt": "Business & Economics",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": [
+        "business_economics"
+      ]
+    },
+    {
+      "slug": "science",
+      "label_pt": "Science",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "chemistry",
+      "label_pt": "Chemistry",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "english_language",
+      "label_pt": "English Language",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "physics",
+      "label_pt": "Physics",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "computer_science",
+      "label_pt": "Computer Science",
+      "group_id": "textbooks",
+      "group_label_pt": "Textbooks",
+      "is_category": false,
+      "aliases": []
+    }
+  ],
+  "formats": [
+    {
+      "slug": "narrative",
+      "label_pt": "Narrativo",
+      "group_id": "narrative",
+      "group_label_pt": "Narrativo",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "novel",
+      "label_pt": "Romance (forma literária)",
+      "group_id": "narrative",
+      "group_label_pt": "Narrativo",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "short_stories",
+      "label_pt": "Contos",
+      "group_id": "narrative",
+      "group_label_pt": "Narrativo",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "anthology",
+      "label_pt": "Antologia",
+      "group_id": "narrative",
+      "group_label_pt": "Narrativo",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "poetic_dramatic",
+      "label_pt": "Poético e Dramático",
+      "group_id": "poetic_dramatic",
+      "group_label_pt": "Poético e Dramático",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "poetry",
+      "label_pt": "Poesia",
+      "group_id": "poetic_dramatic",
+      "group_label_pt": "Poético e Dramático",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "plays",
+      "label_pt": "Peças",
+      "group_id": "poetic_dramatic",
+      "group_label_pt": "Poético e Dramático",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "illustrated",
+      "label_pt": "Ilustrado",
+      "group_id": "illustrated",
+      "group_label_pt": "Ilustrado",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "picture_book",
+      "label_pt": "Livro Ilustrado",
+      "group_id": "illustrated",
+      "group_label_pt": "Ilustrado",
+      "is_category": false,
+      "aliases": [
+        "picture_books"
+      ]
+    },
+    {
+      "slug": "graphic_novel",
+      "label_pt": "Graphic Novel",
+      "group_id": "illustrated",
+      "group_label_pt": "Ilustrado",
+      "is_category": false,
+      "aliases": [
+        "graphic_novels"
+      ]
+    },
+    {
+      "slug": "photography_book",
+      "label_pt": "Livro de Fotografia",
+      "group_id": "illustrated",
+      "group_label_pt": "Ilustrado",
+      "is_category": false,
+      "aliases": [
+        "photography"
+      ]
+    },
+    {
+      "slug": "reference_educational",
+      "label_pt": "Referência e Educacional",
+      "group_id": "reference_educational",
+      "group_label_pt": "Referência e Educacional",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "textbook",
+      "label_pt": "Livro Didático",
+      "group_id": "reference_educational",
+      "group_label_pt": "Referência e Educacional",
+      "is_category": false,
+      "aliases": [
+        "textbooks"
+      ]
+    },
+    {
+      "slug": "cookbook",
+      "label_pt": "Livro de Receitas",
+      "group_id": "reference_educational",
+      "group_label_pt": "Referência e Educacional",
+      "is_category": false,
+      "aliases": [
+        "cookbooks"
+      ]
+    },
+    {
+      "slug": "encyclopedia",
+      "label_pt": "Enciclopédia",
+      "group_id": "reference_educational",
+      "group_label_pt": "Referência e Educacional",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "workbook",
+      "label_pt": "Caderno de Exercícios",
+      "group_id": "reference_educational",
+      "group_label_pt": "Referência e Educacional",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "personal_account",
+      "label_pt": "Relato Pessoal",
+      "group_id": "personal_account",
+      "group_label_pt": "Relato Pessoal",
+      "is_category": true,
+      "aliases": []
+    },
+    {
+      "slug": "autobiography",
+      "label_pt": "Autobiografia",
+      "group_id": "personal_account",
+      "group_label_pt": "Relato Pessoal",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "memoir",
+      "label_pt": "Memórias",
+      "group_id": "personal_account",
+      "group_label_pt": "Relato Pessoal",
+      "is_category": false,
+      "aliases": []
+    },
+    {
+      "slug": "diary_letters",
+      "label_pt": "Diários e Cartas",
+      "group_id": "personal_account",
+      "group_label_pt": "Relato Pessoal",
+      "is_category": false,
+      "aliases": [
+        "diary",
+        "letters"
+      ]
+    }
+  ],
+  "audiences": [
+    {
+      "slug": "baby_toddler_0_3",
+      "label_pt": "Bebês e Primeira Infância (0-3)",
+      "aliases": [
+        "baby",
+        "toddler"
+      ]
+    },
+    {
+      "slug": "children_4_8",
+      "label_pt": "Crianças (4-8)",
+      "aliases": [
+        "children"
+      ]
+    },
+    {
+      "slug": "middle_grade_9_12",
+      "label_pt": "Infantojuvenil (9-12)",
+      "aliases": [
+        "middle_grade"
+      ]
+    },
+    {
+      "slug": "young_adult_13_17",
+      "label_pt": "Jovem Adulto (13-17)",
+      "aliases": [
+        "young_adult"
+      ]
+    },
+    {
+      "slug": "adult",
+      "label_pt": "Adulto",
+      "aliases": []
+    }
+  ],
+  "languages": [
+    {
+      "slug": "chinese",
+      "label_pt": "Chinês",
+      "aliases": []
+    },
+    {
+      "slug": "english",
+      "label_pt": "Inglês",
+      "aliases": []
+    },
+    {
+      "slug": "french",
+      "label_pt": "Francês",
+      "aliases": []
+    },
+    {
+      "slug": "german",
+      "label_pt": "Alemão",
+      "aliases": []
+    },
+    {
+      "slug": "italian",
+      "label_pt": "Italiano",
+      "aliases": []
+    },
+    {
+      "slug": "japanese",
+      "label_pt": "Japonês",
+      "aliases": []
+    },
+    {
+      "slug": "portugues",
+      "label_pt": "Português",
+      "aliases": [
+        "portuguese"
+      ]
+    },
+    {
+      "slug": "russian",
+      "label_pt": "Russo",
+      "aliases": []
+    },
+    {
+      "slug": "spanish",
+      "label_pt": "Espanhol",
+      "aliases": []
+    }
+  ]
+}

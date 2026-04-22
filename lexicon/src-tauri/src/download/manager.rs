@@ -1,8 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 use std::env;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use librqbit::api::TorrentIdOrHash;
@@ -20,8 +20,9 @@ use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
 use crate::models::{
-    DownloadProgressEvent, DownloadRecord, DownloadStateEvent, StartDownloadRequest,
+    AddonRole, DownloadProgressEvent, DownloadRecord, DownloadStateEvent, StartDownloadRequest,
 };
+use crate::plugins::PluginManager;
 
 const DOWNLOAD_PROGRESS_EVENT: &str = "download:progress";
 const DOWNLOAD_STATE_EVENT: &str = "download:state";
@@ -41,10 +42,20 @@ pub struct DownloadManager {
 }
 
 impl DownloadManager {
-    pub fn new(app_handle: AppHandle, pool: SqlitePool) -> Self {
+    pub fn new(
+        app_handle: AppHandle,
+        pool: SqlitePool,
+        plugin_manager: Arc<Mutex<PluginManager>>,
+    ) -> Self {
         let (tx, rx) = mpsc::channel(128);
         let torrent_session = initialize_torrent_session(&app_handle);
-        let actor = DownloadActor::new(app_handle, pool.clone(), tx.clone(), torrent_session);
+        let actor = DownloadActor::new(
+            app_handle,
+            pool.clone(),
+            tx.clone(),
+            torrent_session,
+            plugin_manager,
+        );
         tauri::async_runtime::spawn(actor.run(rx));
 
         Self { tx, pool }
@@ -54,10 +65,12 @@ impl DownloadManager {
         &self,
         source_url: String,
         file_name: Option<String>,
+        subfolder: Option<String>,
     ) -> Result<DownloadRecord, String> {
         let request = StartDownloadRequest {
             source_url,
             file_name,
+            subfolder,
         };
 
         let (responder, receiver) = oneshot::channel();
@@ -234,6 +247,7 @@ struct DownloadActor {
     max_concurrent: usize,
     tx: mpsc::Sender<ManagerCommand>,
     torrent_session: Option<Arc<TorrentSession>>,
+    plugin_manager: Arc<Mutex<PluginManager>>,
 }
 
 impl DownloadActor {
@@ -242,6 +256,7 @@ impl DownloadActor {
         pool: SqlitePool,
         tx: mpsc::Sender<ManagerCommand>,
         torrent_session: Option<Arc<TorrentSession>>,
+        plugin_manager: Arc<Mutex<PluginManager>>,
     ) -> Self {
         let max_concurrent = env::var("LEXICON_MAX_CONCURRENT_DOWNLOADS")
             .ok()
@@ -257,6 +272,7 @@ impl DownloadActor {
             max_concurrent,
             tx,
             torrent_session,
+            plugin_manager,
         }
     }
 
@@ -387,12 +403,23 @@ impl DownloadActor {
             .map(sanitize_file_name)
             .unwrap_or_else(|| derive_file_name(&normalized_url, &id));
 
-        let initial_file_path = resolve_downloads_dir(&self.app_handle)
+        let downloads_dir = resolve_downloads_dir(&self.app_handle)
             .await
-            .map_err(|err| format!("failed to resolve downloads directory: {}", err))?
-            .join(&file_name)
-            .to_string_lossy()
-            .to_string();
+            .map_err(|err| format!("failed to resolve downloads directory: {}", err))?;
+
+        let subfolder = request
+            .subfolder
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(sanitize_file_name);
+
+        let initial_file_path = match subfolder {
+            Some(folder) => downloads_dir.join(folder).join(&file_name),
+            None => downloads_dir.join(&file_name),
+        }
+        .to_string_lossy()
+        .to_string();
 
         sqlx::query(
             "INSERT INTO downloads (id, source_url, source_type, file_name, file_path, status, downloaded_bytes, speed_bps, max_retries)
@@ -780,6 +807,7 @@ impl DownloadActor {
                     self.app_handle.clone(),
                     self.tx.clone(),
                     self.torrent_session.clone(),
+                    self.plugin_manager.clone(),
                 );
                 let active_id = id.clone();
                 self.active.insert(id, active);
@@ -803,6 +831,7 @@ fn spawn_worker(
     app_handle: AppHandle,
     tx: mpsc::Sender<ManagerCommand>,
     torrent_session: Option<Arc<TorrentSession>>,
+    plugin_manager: Arc<Mutex<PluginManager>>,
 ) -> ActiveDownload {
     let (control_tx, control_rx) = mpsc::unbounded_channel();
     tauri::async_runtime::spawn(async move {
@@ -823,6 +852,16 @@ fn spawn_worker(
                     pool.clone(),
                     app_handle.clone(),
                     torrent_session,
+                    control_rx,
+                )
+                .await;
+            }
+            "manga-cbz" => {
+                run_manga_cbz_download(
+                    download,
+                    pool.clone(),
+                    app_handle.clone(),
+                    plugin_manager,
                     control_rx,
                 )
                 .await;
@@ -1669,6 +1708,426 @@ async fn run_torrent_download(
     }
 }
 
+struct MangaCbzUrl {
+    plugin_id: String,
+    chapter_id: String,
+}
+
+fn parse_manga_cbz_url(source_url: &str) -> Option<MangaCbzUrl> {
+    let rest = source_url.strip_prefix("mangacbz://")?;
+    let mut parts = rest.splitn(2, '/');
+    let plugin_id = parts.next()?.trim();
+    let chapter_id = parts.next()?.trim();
+
+    if plugin_id.is_empty() || chapter_id.is_empty() {
+        return None;
+    }
+
+    Some(MangaCbzUrl {
+        plugin_id: plugin_id.to_string(),
+        chapter_id: chapter_id.to_string(),
+    })
+}
+
+async fn run_manga_cbz_download(
+    download: DownloadRecord,
+    pool: SqlitePool,
+    app_handle: AppHandle,
+    plugin_manager: Arc<Mutex<PluginManager>>,
+    mut control_rx: mpsc::UnboundedReceiver<WorkerControl>,
+) {
+    let Some(parsed) = parse_manga_cbz_url(&download.source_url) else {
+        mark_download_failed(
+            &pool,
+            &app_handle,
+            &download.id,
+            format!("invalid manga-cbz source url: {}", download.source_url),
+        )
+        .await;
+        return;
+    };
+
+    let destination_path = match resolve_target_path(&app_handle, &download).await {
+        Ok(path) => path,
+        Err(err) => {
+            mark_download_failed(&pool, &app_handle, &download.id, err).await;
+            return;
+        }
+    };
+
+    if let Err(err) = ensure_parent_dir(&destination_path).await {
+        mark_download_failed(&pool, &app_handle, &download.id, err).await;
+        return;
+    }
+
+    let resolved: Result<_, String> = (|| {
+        let manager = plugin_manager
+            .lock()
+            .map_err(|_| "plugin manager lock poisoned".to_string())?;
+
+        let plugin = manager
+            .plugin_by_id(&parsed.plugin_id)
+            .ok_or_else(|| format!("manga plugin '{}' not found", parsed.plugin_id))?;
+
+        if plugin.role != AddonRole::MangaSource {
+            return Err(format!(
+                "plugin '{}' is not a manga source",
+                parsed.plugin_id
+            ));
+        }
+        if !plugin.enabled {
+            return Err(format!("manga plugin '{}' is disabled", parsed.plugin_id));
+        }
+
+        let snapshot = manager.runtime_snapshot();
+        Ok((snapshot.engine, snapshot.fuel_per_invocation, plugin))
+    })();
+
+    let (engine, fuel_per_invocation, plugin_descriptor) = match resolved {
+        Ok(tuple) => tuple,
+        Err(err) => {
+            mark_download_failed(&pool, &app_handle, &download.id, err).await;
+            return;
+        }
+    };
+
+    let chapter_id = parsed.chapter_id.clone();
+    let page_fetch = tokio::task::spawn_blocking({
+        let engine = engine.clone();
+        let plugin = plugin_descriptor.clone();
+        move || {
+            PluginManager::execute_manga_get_chapter_pages(
+                &engine,
+                fuel_per_invocation,
+                &plugin,
+                &chapter_id,
+            )
+        }
+    })
+    .await;
+
+    let page_list = match page_fetch {
+        Ok(Ok(list)) => list,
+        Ok(Err(err)) => {
+            mark_download_failed(
+                &pool,
+                &app_handle,
+                &download.id,
+                format!("failed to list pages: {}", err.message),
+            )
+            .await;
+            return;
+        }
+        Err(err) => {
+            mark_download_failed(
+                &pool,
+                &app_handle,
+                &download.id,
+                format!("manga page fetch join error: {}", err),
+            )
+            .await;
+            return;
+        }
+    };
+
+    let urls = page_list.page_urls;
+    if urls.is_empty() {
+        mark_download_failed(
+            &pool,
+            &app_handle,
+            &download.id,
+            "chapter has no pages".to_string(),
+        )
+        .await;
+        return;
+    }
+
+    let total_pages = urls.len() as i64;
+
+    if let Err(err) = update_download_status(
+        &pool,
+        &download.id,
+        "downloading",
+        Some(total_pages),
+        Some(0),
+        Some(0),
+        Some(destination_path.to_string_lossy().to_string()),
+        false,
+    )
+    .await
+    {
+        eprintln!("[download-manager] failed to init manga progress: {}", err);
+    }
+
+    emit_progress(
+        &app_handle,
+        &download,
+        "downloading",
+        0,
+        Some(total_pages),
+        Some(0),
+    );
+
+    let client = match reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(HTTP_CONNECT_TIMEOUT_SECONDS))
+        .read_timeout(Duration::from_secs(HTTP_READ_TIMEOUT_SECONDS))
+        .user_agent(DOWNLOAD_HTTP_USER_AGENT)
+        .build()
+    {
+        Ok(client) => client,
+        Err(err) => {
+            mark_download_failed(
+                &pool,
+                &app_handle,
+                &download.id,
+                format!("http client error: {}", err),
+            )
+            .await;
+            return;
+        }
+    };
+
+    let mut images: Vec<(String, Vec<u8>)> = Vec::with_capacity(urls.len());
+    let mut last_emit = Instant::now();
+    let mut failed_pages: Vec<usize> = Vec::new();
+
+    for (index, url) in urls.iter().enumerate() {
+        loop {
+            match control_rx.try_recv() {
+                Ok(WorkerControl::Cancel) => {
+                    let _ = remove_path_if_exists(&destination_path).await;
+                    if let Err(err) = update_download_status(
+                        &pool,
+                        &download.id,
+                        "cancelled",
+                        None,
+                        None,
+                        Some(0),
+                        None,
+                        true,
+                    )
+                    .await
+                    {
+                        eprintln!("[download-manager] cancel finalize failed: {}", err);
+                    }
+                    emit_state_for_download(&app_handle, &pool, &download.id).await;
+                    return;
+                }
+                Ok(WorkerControl::Pause) => {
+                    if let Err(err) = update_download_status(
+                        &pool,
+                        &download.id,
+                        "paused",
+                        Some(total_pages),
+                        Some(index as i64),
+                        Some(0),
+                        Some(destination_path.to_string_lossy().to_string()),
+                        false,
+                    )
+                    .await
+                    {
+                        eprintln!("[download-manager] pause finalize failed: {}", err);
+                    }
+                    emit_state_for_download(&app_handle, &pool, &download.id).await;
+                    return;
+                }
+                Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+                | Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => break,
+            }
+        }
+
+        let bytes = match fetch_image_with_retry(&client, url).await {
+            Ok(bytes) => bytes,
+            Err(err) => {
+                eprintln!(
+                    "[download-manager] page {} fetch failed, skipping: {}",
+                    index + 1,
+                    err
+                );
+                failed_pages.push(index + 1);
+                continue;
+            }
+        };
+
+        let extension = detect_image_extension(url, &bytes);
+        let entry_name = format!("{:03}.{}", index + 1, extension);
+        images.push((entry_name, bytes));
+
+        let downloaded_pages = (index + 1) as i64;
+
+        if last_emit.elapsed() >= Duration::from_millis(250) || downloaded_pages == total_pages {
+            last_emit = Instant::now();
+            if let Err(err) = persist_progress(
+                &pool,
+                &download.id,
+                Some(total_pages),
+                downloaded_pages,
+                None,
+            )
+            .await
+            {
+                eprintln!("[download-manager] failed persisting manga progress: {}", err);
+            }
+
+            emit_progress(
+                &app_handle,
+                &download,
+                "downloading",
+                downloaded_pages,
+                Some(total_pages),
+                None,
+            );
+        }
+    }
+
+    if images.is_empty() {
+        mark_download_failed(
+            &pool,
+            &app_handle,
+            &download.id,
+            format!(
+                "all {} page(s) failed to download",
+                failed_pages.len()
+            ),
+        )
+        .await;
+        return;
+    }
+
+    if !failed_pages.is_empty() {
+        eprintln!(
+            "[download-manager] manga cbz {}: skipped {} unavailable page(s): {:?}",
+            download.id,
+            failed_pages.len(),
+            failed_pages
+        );
+    }
+
+    let zip_destination = destination_path.clone();
+    let zip_result = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+        let file = std::fs::File::create(&zip_destination)?;
+        let mut writer = zip::ZipWriter::new(file);
+        let options: zip::write::SimpleFileOptions =
+            zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+        for (name, bytes) in &images {
+            writer
+                .start_file(name, options)
+                .map_err(|err| std::io::Error::new(ErrorKind::Other, err.to_string()))?;
+            writer.write_all(bytes)?;
+        }
+
+        writer
+            .finish()
+            .map_err(|err| std::io::Error::new(ErrorKind::Other, err.to_string()))?;
+        Ok(())
+    })
+    .await;
+
+    match zip_result {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) => {
+            mark_download_failed(
+                &pool,
+                &app_handle,
+                &download.id,
+                format!("failed to write cbz: {}", err),
+            )
+            .await;
+            return;
+        }
+        Err(err) => {
+            mark_download_failed(
+                &pool,
+                &app_handle,
+                &download.id,
+                format!("cbz writer join error: {}", err),
+            )
+            .await;
+            return;
+        }
+    }
+
+    if let Err(err) = sqlx::query(
+        "UPDATE downloads SET status = 'completed', downloaded_bytes = ?, total_bytes = ?, speed_bps = 0, error_message = NULL, file_path = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?",
+    )
+    .bind(total_pages)
+    .bind(total_pages)
+    .bind(destination_path.to_string_lossy().to_string())
+    .bind(&download.id)
+    .execute(&pool)
+    .await
+    {
+        eprintln!("[download-manager] manga complete update failed: {}", err);
+    }
+
+    emit_progress(
+        &app_handle,
+        &download,
+        "completed",
+        total_pages,
+        Some(total_pages),
+        Some(0),
+    );
+    emit_state_for_download(&app_handle, &pool, &download.id).await;
+}
+
+async fn fetch_image_with_retry(
+    client: &reqwest::Client,
+    url: &str,
+) -> Result<Vec<u8>, String> {
+    let mut last_err: Option<String> = None;
+
+    for attempt in 0..HTTP_RETRY_ATTEMPTS {
+        match client.get(url).send().await {
+            Ok(response) => {
+                if !response.status().is_success() {
+                    last_err = Some(format!("status {}", response.status()));
+                } else {
+                    match response.bytes().await {
+                        Ok(bytes) => return Ok(bytes.to_vec()),
+                        Err(err) => last_err = Some(format_http_error(&err)),
+                    }
+                }
+            }
+            Err(err) => last_err = Some(format_http_error(&err)),
+        }
+
+        if attempt + 1 < HTTP_RETRY_ATTEMPTS {
+            tokio::time::sleep(retry_backoff_delay(attempt + 1)).await;
+        }
+    }
+
+    Err(last_err.unwrap_or_else(|| "unknown error".to_string()))
+}
+
+fn detect_image_extension(url: &str, bytes: &[u8]) -> &'static str {
+    if bytes.len() >= 8 && &bytes[0..8] == b"\x89PNG\r\n\x1a\n" {
+        return "png";
+    }
+
+    if bytes.len() >= 3 && &bytes[0..3] == b"\xff\xd8\xff" {
+        return "jpg";
+    }
+
+    if bytes.len() >= 6 && (&bytes[0..6] == b"GIF87a" || &bytes[0..6] == b"GIF89a") {
+        return "gif";
+    }
+
+    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        return "webp";
+    }
+
+    let lowered = url.split('?').next().unwrap_or(url).to_ascii_lowercase();
+    for candidate in ["png", "jpg", "jpeg", "webp", "gif"] {
+        if lowered.ends_with(&format!(".{}", candidate)) {
+            return if candidate == "jpeg" { "jpg" } else { candidate };
+        }
+    }
+
+    "jpg"
+}
+
 async fn finalize_paused(
     pool: &SqlitePool,
     app_handle: &AppHandle,
@@ -2011,6 +2470,7 @@ fn is_supported_source_url(source_url: &str) -> bool {
         || normalized.starts_with("https://")
         || normalized.starts_with("magnet:")
         || normalized.ends_with(".torrent")
+        || normalized.starts_with("mangacbz://")
 }
 
 fn is_http_or_magnet_url(source_url: &str) -> bool {
@@ -2078,6 +2538,10 @@ fn detect_source_type(source_url: &str) -> &'static str {
     let normalized = source_url.to_ascii_lowercase();
     if normalized.starts_with("magnet:") || normalized.ends_with(".torrent") {
         return "torrent";
+    }
+
+    if normalized.starts_with("mangacbz://") {
+        return "manga-cbz";
     }
 
     "http"

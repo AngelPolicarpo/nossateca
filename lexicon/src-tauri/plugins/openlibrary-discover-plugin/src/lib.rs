@@ -3,6 +3,9 @@ wit_bindgen::generate!({
     world: "discover-plugin",
 });
 
+use std::sync::OnceLock;
+
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::lexicon::plugin_roles::common_types::{HttpHeader, HttpRequest};
@@ -11,16 +14,25 @@ use crate::lexicon::plugin_roles::host_http;
 
 const OPEN_LIBRARY_BASE_URL: &str = "https://openlibrary.org";
 const REQUEST_TIMEOUT_MS: u64 = 15_000;
+const EDITIONS_PREFETCH_LIMIT: u32 = 40;
+const DEFAULT_SUBJECT_FALLBACK: &str = "fantasy";
+const SEARCH_FIELDS: &str =
+    "key,title,author_name,cover_i,first_publish_year,subject,subtitle,isbn,isbn_10,isbn_13,editions,availability,ebook_access,ia,public_scan_b,has_fulltext";
+const FACET_REGISTRY_JSON: &str = include_str!("../../../../src/data/discoverFacets.json");
 
-const SUBJECTS: [(&str, &str); 7] = [
-    ("science_fiction", "Ficcao Cientifica"),
-    ("fantasy", "Fantasia"),
-    ("mystery", "Misterio"),
-    ("manga", "Manga"),
-    ("comics", "Quadrinhos"),
-    ("biography", "Biografia"),
-    ("history", "Historia"),
-];
+static FACET_REGISTRY: OnceLock<Result<DiscoverFacetRegistry, String>> = OnceLock::new();
+
+#[derive(Debug, Deserialize)]
+struct DiscoverFacetRegistry {
+    subjects: Vec<SubjectFacetEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SubjectFacetEntry {
+    slug: String,
+    #[serde(default)]
+    aliases: Vec<String>,
+}
 
 struct OpenLibraryDiscoverPlugin;
 
@@ -28,48 +40,79 @@ export!(OpenLibraryDiscoverPlugin);
 
 impl Guest for OpenLibraryDiscoverPlugin {
     fn list_catalogs() -> Result<Vec<DiscoverCatalog>, PluginError> {
+        let subject_slugs = available_subject_slugs()?;
+
         Ok(vec![
             DiscoverCatalog {
                 id: "openlibrary:trending:daily".to_string(),
-                name: "Tendencias Diarias".to_string(),
+                name: "Livros em Alta Hoje".to_string(),
                 content_type: "trending".to_string(),
                 genres: Vec::new(),
                 supported_filters: vec!["year".to_string()],
             },
             DiscoverCatalog {
                 id: "openlibrary:trending:weekly".to_string(),
-                name: "Tendencias Semanais".to_string(),
+                name: "Livros em Alta da Semana".to_string(),
                 content_type: "trending".to_string(),
                 genres: Vec::new(),
                 supported_filters: vec!["year".to_string()],
             },
             DiscoverCatalog {
+                id: "openlibrary:free".to_string(),
+                name: "Livros Gratuitos".to_string(),
+                content_type: "free".to_string(),
+                genres: Vec::new(),
+                supported_filters: vec!["year".to_string()],
+            },
+            DiscoverCatalog {
                 id: "openlibrary:subjects".to_string(),
-                name: "Navegar por Assunto".to_string(),
+                name: "Filtrar Livros".to_string(),
                 content_type: "subject".to_string(),
-                genres: SUBJECTS.iter().map(|(slug, _)| (*slug).to_string()).collect(),
-                supported_filters: vec!["genre".to_string(), "year".to_string()],
+                genres: subject_slugs,
+                supported_filters: vec![
+                    "genre".to_string(),
+                    "year".to_string(),
+                    "format".to_string(),
+                    "audience".to_string(),
+                ],
             },
         ])
     }
 
     fn list_catalog_items(request: DiscoverCatalogQuery) -> Result<DiscoverCatalogPage, PluginError> {
-        let page_size = request.page_size.clamp(1, 100);
+        let DiscoverCatalogQuery {
+            catalog_id,
+            skip,
+            page_size,
+            genre,
+            year,
+            search_query,
+        } = request;
 
-        match request.catalog_id.as_str() {
-            "openlibrary:trending:daily" => list_trending("daily", request.skip, page_size, request.year),
+        let page_size = page_size.clamp(1, 100);
+
+        let normalized_search_query = search_query
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+
+        if catalog_id == "openlibrary:free" {
+            return list_public_catalog(normalized_search_query, skip, page_size, year);
+        }
+
+        if let Some(search_query) = normalized_search_query {
+            return list_search(search_query, skip, page_size, year);
+        }
+
+        match catalog_id.as_str() {
+            "openlibrary:trending:daily" => list_trending("daily", skip, page_size, year),
             "openlibrary:trending:weekly" => {
-                list_trending("weekly", request.skip, page_size, request.year)
+                list_trending("weekly", skip, page_size, year)
             }
-            "openlibrary:subjects" => list_subjects(
-                request.genre,
-                request.skip,
-                page_size,
-                request.year,
-            ),
+            "openlibrary:subjects" => list_subjects(genre, skip, page_size, year),
             _ => Err(PluginError::NotFound(format!(
                 "catalog '{}' not found",
-                request.catalog_id
+                catalog_id
             ))),
         }
     }
@@ -82,35 +125,108 @@ impl Guest for OpenLibraryDiscoverPlugin {
         let work_url = format!("{}/works/{}.json", OPEN_LIBRARY_BASE_URL, work_id);
         let work_payload = get_json(&work_url, Vec::new())?;
 
-        let title = string_field(&work_payload, "title").unwrap_or_else(|| "Untitled".to_string());
-        let description = parse_description(work_payload.get("description"));
-        let cover_url = work_payload
-            .get("covers")
-            .and_then(Value::as_array)
-            .and_then(|covers| covers.first())
-            .and_then(Value::as_i64)
+        let preferred_edition_entry = resolve_preferred_edition_entry(&work_id)?;
+        let preferred_edition_payload = preferred_edition_entry
+            .as_ref()
+            .and_then(resolve_edition_id)
+            .and_then(|edition_id| {
+                get_json(
+                    &format!("{}/books/{}.json", OPEN_LIBRARY_BASE_URL, edition_id),
+                    Vec::new(),
+                )
+                .ok()
+            });
+
+        let title = string_field(&work_payload, "title")
+            .or_else(|| {
+                preferred_edition_payload
+                    .as_ref()
+                    .and_then(resolve_title_from_record)
+            })
+            .or_else(|| {
+                preferred_edition_entry
+                    .as_ref()
+                    .and_then(resolve_title_from_record)
+            })
+            .unwrap_or_else(|| "Untitled".to_string());
+
+        let description = parse_description(work_payload.get("description"))
+            .or_else(|| {
+                preferred_edition_payload
+                    .as_ref()
+                    .and_then(|record| parse_description(record.get("description")))
+            })
+            .or_else(|| {
+                preferred_edition_entry
+                    .as_ref()
+                    .and_then(|record| parse_description(record.get("description")))
+            });
+
+        let cover_url = preferred_edition_payload
+            .as_ref()
+            .and_then(resolve_cover_id)
+            .or_else(|| {
+                preferred_edition_entry
+                    .as_ref()
+                    .and_then(resolve_cover_id)
+            })
+            .or_else(|| resolve_cover_id(&work_payload))
             .map(cover_url)
             .unwrap_or_default();
 
-        let genres = work_payload
-            .get("subjects")
-            .and_then(Value::as_array)
-            .map(|subjects| {
-                subjects
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .map(|value| value.trim().to_string())
-                    .filter(|value| !value.is_empty())
-                    .take(8)
-                    .collect::<Vec<_>>()
+        let mut genres = extract_subjects(&work_payload, 8);
+        if genres.is_empty() {
+            genres = preferred_edition_payload
+                .as_ref()
+                .map(|record| extract_subjects(record, 8))
+                .unwrap_or_default();
+        }
+
+        let year = resolve_publish_year(&work_payload)
+            .or_else(|| {
+                preferred_edition_payload
+                    .as_ref()
+                    .and_then(resolve_publish_year)
             })
-            .unwrap_or_default();
+            .or_else(|| {
+                preferred_edition_entry
+                    .as_ref()
+                    .and_then(resolve_publish_year)
+            });
 
-        let year = string_field(&work_payload, "first_publish_date")
-            .and_then(|value| value.chars().take(4).collect::<String>().parse::<u32>().ok());
+        let author = resolve_primary_author_name(&work_payload)
+            .or_else(|| resolve_author_name(&work_payload))
+            .or_else(|| {
+                preferred_edition_payload
+                    .as_ref()
+                    .and_then(resolve_author_name)
+            })
+            .or_else(|| {
+                preferred_edition_entry
+                    .as_ref()
+                    .and_then(resolve_author_name)
+            })
+            .unwrap_or_else(|| "Autor desconhecido".to_string());
 
-        let author = resolve_primary_author_name(&work_payload).unwrap_or_else(|| "Autor desconhecido".to_string());
-        let isbn = resolve_first_isbn(&work_id)?;
+        let isbn = preferred_edition_payload
+            .as_ref()
+            .and_then(resolve_isbn)
+            .or_else(|| preferred_edition_entry.as_ref().and_then(resolve_isbn));
+
+        let page_count = preferred_edition_payload
+            .as_ref()
+            .and_then(resolve_page_count)
+            .or_else(|| {
+                preferred_edition_entry
+                    .as_ref()
+                    .and_then(resolve_page_count)
+            });
+
+        let origin_url = preferred_edition_entry
+            .as_ref()
+            .and_then(resolve_edition_id)
+            .map(|edition_id| format!("{}/books/{}", OPEN_LIBRARY_BASE_URL, edition_id))
+            .or_else(|| Some(format!("{}/works/{}", OPEN_LIBRARY_BASE_URL, work_id)));
 
         Ok(DiscoverItemDetails {
             id: item_id,
@@ -120,9 +236,10 @@ impl Guest for OpenLibraryDiscoverPlugin {
             cover_url,
             genres,
             year,
+            page_count,
             format: None,
             isbn,
-            origin_url: Some(format!("{}/works/{}", OPEN_LIBRARY_BASE_URL, work_id)),
+            origin_url,
         })
     }
 }
@@ -167,9 +284,12 @@ fn list_subjects(
     page_size: u32,
     year_filter: Option<u32>,
 ) -> Result<DiscoverCatalogPage, PluginError> {
-    let subject = normalize_subject_slug(genre_filter.as_deref().unwrap_or("fantasy"));
-
-    let url = format!("{}/subjects/{}.json", OPEN_LIBRARY_BASE_URL, subject);
+    let subject = normalize_subject_slug(genre_filter.as_deref().unwrap_or(DEFAULT_SUBJECT_FALLBACK));
+    let url = format!(
+        "{}/subjects/{}.json",
+        OPEN_LIBRARY_BASE_URL,
+        subject_path_segment(&subject)
+    );
     let payload = get_json(
         &url,
         vec![
@@ -197,6 +317,109 @@ fn list_subjects(
     Ok(DiscoverCatalogPage { items, has_more })
 }
 
+fn list_search(
+    search_query: &str,
+    skip: u32,
+    page_size: u32,
+    year_filter: Option<u32>,
+) -> Result<DiscoverCatalogPage, PluginError> {
+    let payload = get_json(
+        &format!("{}/search.json", OPEN_LIBRARY_BASE_URL),
+        vec![
+            ("q".to_string(), search_query.to_string()),
+            ("fields".to_string(), SEARCH_FIELDS.to_string()),
+            ("limit".to_string(), page_size.to_string()),
+            ("offset".to_string(), skip.to_string()),
+        ],
+    )?;
+
+    let docs = payload
+        .get("docs")
+        .and_then(Value::as_array)
+        .ok_or_else(|| PluginError::ParsingFailure("missing docs array".to_string()))?;
+
+    let mut items = docs.iter().map(parse_item).collect::<Vec<_>>();
+
+    if let Some(year) = year_filter {
+        items.retain(|item| item.year == Some(year));
+    }
+
+    let total_found = payload
+        .get("numFound")
+        .and_then(Value::as_u64)
+        .unwrap_or(skip as u64 + docs.len() as u64);
+
+    let has_more = (skip as u64 + docs.len() as u64) < total_found;
+
+    Ok(DiscoverCatalogPage { items, has_more })
+}
+
+fn list_public_catalog(
+    search_query: Option<&str>,
+    skip: u32,
+    page_size: u32,
+    year_filter: Option<u32>,
+) -> Result<DiscoverCatalogPage, PluginError> {
+    let effective_query = search_query.unwrap_or("ebook_access:public");
+
+    let payload = get_json(
+        &format!("{}/search.json", OPEN_LIBRARY_BASE_URL),
+        vec![
+            ("q".to_string(), effective_query.to_string()),
+            ("ebook_access".to_string(), "public".to_string()),
+            ("fields".to_string(), SEARCH_FIELDS.to_string()),
+            ("limit".to_string(), page_size.to_string()),
+            ("offset".to_string(), skip.to_string()),
+        ],
+    )?;
+
+    let docs = payload
+        .get("docs")
+        .and_then(Value::as_array)
+        .ok_or_else(|| PluginError::ParsingFailure("missing docs array".to_string()))?;
+
+    let mut items = docs
+        .iter()
+        .filter(|doc| is_public_ebook(doc))
+        .map(parse_item)
+        .collect::<Vec<_>>();
+
+    if let Some(year) = year_filter {
+        items.retain(|item| item.year == Some(year));
+    }
+
+    let total_found = payload
+        .get("numFound")
+        .and_then(Value::as_u64)
+        .unwrap_or(skip as u64 + docs.len() as u64);
+
+    let has_more = (skip as u64 + docs.len() as u64) < total_found;
+
+    Ok(DiscoverCatalogPage { items, has_more })
+}
+
+fn is_public_ebook(value: &Value) -> bool {
+    let direct_access = string_field(value, "ebook_access")
+        .map(|entry| entry.eq_ignore_ascii_case("public"))
+        .unwrap_or(false);
+
+    if direct_access {
+        return true;
+    }
+
+    value
+        .pointer("/editions/docs")
+        .and_then(Value::as_array)
+        .map(|editions| {
+            editions.iter().any(|edition| {
+                string_field(edition, "ebook_access")
+                    .map(|entry| entry.eq_ignore_ascii_case("public"))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
 fn parse_item(value: &Value) -> DiscoverItem {
     let work_key = value
         .get("key")
@@ -209,15 +432,17 @@ fn parse_item(value: &Value) -> DiscoverItem {
         .or_else(|| work_key.strip_prefix("works/"))
         .unwrap_or(work_key);
 
-    let title = string_field(value, "title").unwrap_or_else(|| "Untitled".to_string());
-
-    let author = value
-        .get("author_name")
+    let preferred_inline_edition = value
+        .pointer("/editions/docs")
         .and_then(Value::as_array)
-        .and_then(|authors| authors.first())
-        .and_then(Value::as_str)
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
+        .and_then(|docs| choose_preferred_edition(docs));
+
+    let title = string_field(value, "title")
+        .or_else(|| preferred_inline_edition.and_then(resolve_title_from_record))
+        .unwrap_or_else(|| "Untitled".to_string());
+
+    let author = resolve_author_name(value)
+        .or_else(|| preferred_inline_edition.and_then(resolve_author_name))
         .or_else(|| {
             value
                 .get("authors")
@@ -230,46 +455,33 @@ fn parse_item(value: &Value) -> DiscoverItem {
         })
         .unwrap_or_else(|| "Autor desconhecido".to_string());
 
-    let cover_url = value
-        .get("cover_i")
-        .and_then(Value::as_i64)
-        .or_else(|| value.get("cover_id").and_then(Value::as_i64))
+    let cover_url = preferred_inline_edition
+        .and_then(resolve_cover_id)
+        .or_else(|| resolve_cover_id(value))
         .map(cover_url)
         .unwrap_or_default();
 
-    let genres = value
-        .get("subject")
-        .and_then(Value::as_array)
-        .map(|subjects| {
-            subjects
-                .iter()
-                .filter_map(Value::as_str)
-                .map(|value| value.trim().to_string())
-                .filter(|value| !value.is_empty())
-                .take(5)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let genres = extract_subjects(value, 5);
 
-    let year = value
-        .get("first_publish_year")
-        .and_then(Value::as_u64)
-        .and_then(|value| u32::try_from(value).ok());
+    let year = resolve_publish_year(value);
 
-    let short_description = string_field(value, "subtitle");
+    let short_description = string_field(value, "subtitle")
+        .or_else(|| preferred_inline_edition.and_then(|entry| string_field(entry, "subtitle")));
 
-    let isbn = value
-        .pointer("/editions/docs")
-        .and_then(Value::as_array)
-        .and_then(|docs| docs.first())
-        .and_then(|doc| {
-            doc.get("isbn")
+    let isbn = preferred_inline_edition
+        .and_then(resolve_isbn)
+        .or_else(|| {
+            value
+                .pointer("/editions/docs")
                 .and_then(Value::as_array)
-                .and_then(|isbns| isbns.first())
-                .and_then(Value::as_str)
+                .and_then(|docs| docs.first())
+                .and_then(resolve_isbn)
         })
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
+        .or_else(|| resolve_isbn(value));
+
+    let page_count = preferred_inline_edition
+        .and_then(resolve_page_count)
+        .or_else(|| resolve_page_count(value));
 
     DiscoverItem {
         id: format!("openlibrary:work:{}", work_id),
@@ -278,8 +490,9 @@ fn parse_item(value: &Value) -> DiscoverItem {
         cover_url,
         genres,
         year,
+        page_count,
         short_description,
-        format: string_field(value, "ebook_access"),
+        format: None,
         isbn,
     }
 }
@@ -300,12 +513,12 @@ fn resolve_primary_author_name(work_payload: &Value) -> Option<String> {
     string_field(&author_payload, "name")
 }
 
-fn resolve_first_isbn(work_id: &str) -> Result<Option<String>, PluginError> {
+fn resolve_preferred_edition_entry(work_id: &str) -> Result<Option<Value>, PluginError> {
     let url = format!("{}/works/{}/editions.json", OPEN_LIBRARY_BASE_URL, work_id);
     let payload = get_json(
         &url,
         vec![
-            ("limit".to_string(), "5".to_string()),
+            ("limit".to_string(), EDITIONS_PREFETCH_LIMIT.to_string()),
             ("offset".to_string(), "0".to_string()),
         ],
     )?;
@@ -316,50 +529,285 @@ fn resolve_first_isbn(work_id: &str) -> Result<Option<String>, PluginError> {
         .cloned()
         .unwrap_or_default();
 
-    for entry in entries {
-        if let Some(isbn) = entry
-            .get("isbn_13")
-            .and_then(Value::as_array)
-            .and_then(|isbns| isbns.first())
-            .and_then(Value::as_str)
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-        {
-            return Ok(Some(isbn));
-        }
+    Ok(choose_preferred_edition(&entries).cloned())
+}
 
-        if let Some(isbn) = entry
-            .get("isbn_10")
-            .and_then(Value::as_array)
-            .and_then(|isbns| isbns.first())
-            .and_then(Value::as_str)
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-        {
-            return Ok(Some(isbn));
+fn choose_preferred_edition(entries: &[Value]) -> Option<&Value> {
+    entries.iter().min_by_key(|entry| {
+        let has_title = resolve_title_from_record(entry).is_some();
+        let has_page_count = resolve_page_count(entry).is_some();
+        let has_isbn = resolve_isbn(entry).is_some();
+
+        (u8::from(!has_title), u8::from(!has_page_count), u8::from(!has_isbn))
+    })
+}
+
+fn resolve_title_from_record(value: &Value) -> Option<String> {
+    string_field(value, "title").or_else(|| string_field(value, "full_title"))
+}
+
+fn resolve_author_name(value: &Value) -> Option<String> {
+    value
+        .get("author_name")
+        .and_then(Value::as_array)
+        .and_then(|authors| authors.first())
+        .and_then(Value::as_str)
+        .and_then(non_empty)
+        .or_else(|| {
+            value
+                .get("authors")
+                .and_then(Value::as_array)
+                .and_then(|authors| authors.first())
+                .and_then(|author| author.get("name"))
+                .and_then(Value::as_str)
+                .and_then(non_empty)
+        })
+}
+
+fn resolve_cover_id(value: &Value) -> Option<i64> {
+    value
+        .get("cover_i")
+        .and_then(Value::as_i64)
+        .filter(|cover_id| *cover_id > 0)
+        .or_else(|| {
+            value
+                .get("cover_id")
+                .and_then(Value::as_i64)
+                .filter(|cover_id| *cover_id > 0)
+        })
+        .or_else(|| {
+            value
+                .get("covers")
+                .and_then(Value::as_array)
+                .and_then(|covers| {
+                    covers
+                        .iter()
+                        .filter_map(Value::as_i64)
+                        .find(|cover_id| *cover_id > 0)
+                })
+        })
+}
+
+fn extract_subjects(value: &Value, limit: usize) -> Vec<String> {
+    value
+        .get("subject")
+        .and_then(Value::as_array)
+        .or_else(|| value.get("subjects").and_then(Value::as_array))
+        .map(|subjects| {
+            subjects
+                .iter()
+                .filter_map(Value::as_str)
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+                .take(limit)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn resolve_publish_year(value: &Value) -> Option<u32> {
+    value
+        .get("first_publish_year")
+        .and_then(Value::as_u64)
+        .and_then(|year| u32::try_from(year).ok())
+        .or_else(|| string_field(value, "first_publish_date").and_then(|date| parse_year_from_text(&date)))
+        .or_else(|| string_field(value, "publish_date").and_then(|date| parse_year_from_text(&date)))
+}
+
+fn parse_year_from_text(value: &str) -> Option<u32> {
+    let bytes = value.as_bytes();
+    if bytes.len() < 4 {
+        return None;
+    }
+
+    for window in bytes.windows(4) {
+        if window.iter().all(u8::is_ascii_digit) {
+            let year = std::str::from_utf8(window).ok()?.parse::<u32>().ok()?;
+            if (1000..=2100).contains(&year) {
+                return Some(year);
+            }
         }
     }
 
-    Ok(None)
+    None
+}
+
+fn resolve_isbn(value: &Value) -> Option<String> {
+    first_string_from_array(value, "isbn_13")
+        .or_else(|| first_string_from_array(value, "isbn_10"))
+        .or_else(|| first_string_from_array(value, "isbn"))
+        .or_else(|| {
+            value
+                .pointer("/availability/isbn")
+                .and_then(Value::as_str)
+                .and_then(non_empty)
+        })
+}
+
+fn first_string_from_array(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .and_then(|values| values.first())
+        .and_then(Value::as_str)
+        .and_then(non_empty)
+}
+
+fn resolve_page_count(value: &Value) -> Option<u32> {
+    value
+        .get("number_of_pages")
+        .and_then(Value::as_u64)
+        .and_then(|count| u32::try_from(count).ok())
+        .or_else(|| {
+            value
+                .get("number_of_pages")
+                .and_then(Value::as_str)
+                .and_then(parse_number_from_text)
+        })
+        .or_else(|| {
+            value
+                .get("number_of_pages_median")
+                .and_then(Value::as_u64)
+                .and_then(|count| u32::try_from(count).ok())
+        })
+        .or_else(|| string_field(value, "pagination").and_then(|value| parse_number_from_text(&value)))
+}
+
+fn parse_number_from_text(value: &str) -> Option<u32> {
+    let mut current = String::new();
+    let mut best: Option<u32> = None;
+
+    for ch in value.chars() {
+        if ch.is_ascii_digit() {
+            current.push(ch);
+            continue;
+        }
+
+        if !current.is_empty() {
+            if let Ok(parsed) = current.parse::<u32>() {
+                best = Some(best.map_or(parsed, |previous| previous.max(parsed)));
+            }
+            current.clear();
+        }
+    }
+
+    if !current.is_empty() {
+        if let Ok(parsed) = current.parse::<u32>() {
+            best = Some(best.map_or(parsed, |previous| previous.max(parsed)));
+        }
+    }
+
+    best.filter(|count| *count > 0)
+}
+
+fn resolve_edition_id(value: &Value) -> Option<String> {
+    value
+        .get("key")
+        .and_then(Value::as_str)
+        .and_then(parse_edition_id)
+}
+
+fn parse_edition_id(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    if trimmed.starts_with("OL") && trimmed.ends_with('M') {
+        return Some(trimmed.to_string());
+    }
+
+    let suffix = trimmed.rsplit('/').next().unwrap_or(trimmed).trim();
+    if suffix.starts_with("OL") && suffix.ends_with('M') {
+        return Some(suffix.to_string());
+    }
+
+    None
 }
 
 fn normalize_subject_slug(raw: &str) -> String {
-    let normalized = raw
-        .trim()
-        .to_ascii_lowercase()
-        .replace(' ', "_")
-        .replace('-', "_");
+    let normalized = normalize_subject_token(raw);
 
-    if SUBJECTS.iter().any(|(slug, _)| *slug == normalized) {
-        return normalized;
+    if let Ok(registry) = facet_registry() {
+        for subject in &registry.subjects {
+            let canonical = normalize_subject_token(&subject.slug);
+            if canonical == normalized {
+                return subject.slug.clone();
+            }
+
+            if subject
+                .aliases
+                .iter()
+                .any(|alias| normalize_subject_token(alias) == normalized)
+            {
+                return subject.slug.clone();
+            }
+        }
+
+        if normalized.starts_with("place_") {
+            let candidate = normalized.replacen("place_", "place:", 1);
+            if registry
+                .subjects
+                .iter()
+                .any(|subject| normalize_subject_token(&subject.slug) == candidate)
+            {
+                return candidate;
+            }
+        }
     }
 
-    match normalized.as_str() {
-        "ficcao_cientifica" | "ficção_científica" => "science_fiction".to_string(),
-        "misterio" | "mistério" => "mystery".to_string(),
-        "quadrinhos" => "comics".to_string(),
-        "historia" | "história" => "history".to_string(),
-        _ => "fantasy".to_string(),
+    DEFAULT_SUBJECT_FALLBACK.to_string()
+}
+
+fn subject_path_segment(subject: &str) -> String {
+    subject
+        .trim()
+        .replace(' ', "_")
+        .replace(':', "%3A")
+}
+
+fn normalize_subject_token(raw: &str) -> String {
+    let decoded = raw.trim().replace("%3A", ":").replace("%3a", ":");
+    fold_portuguese_diacritics(&decoded)
+        .to_ascii_lowercase()
+        .replace(' ', "_")
+        .replace('-', "_")
+        .replace("__", "_")
+}
+
+fn fold_portuguese_diacritics(input: &str) -> String {
+    input
+        .chars()
+        .map(|ch| match ch {
+            'á' | 'à' | 'â' | 'ã' | 'ä' | 'Á' | 'À' | 'Â' | 'Ã' | 'Ä' => 'a',
+            'é' | 'è' | 'ê' | 'ë' | 'É' | 'È' | 'Ê' | 'Ë' => 'e',
+            'í' | 'ì' | 'î' | 'ï' | 'Í' | 'Ì' | 'Î' | 'Ï' => 'i',
+            'ó' | 'ò' | 'ô' | 'õ' | 'ö' | 'Ó' | 'Ò' | 'Ô' | 'Õ' | 'Ö' => 'o',
+            'ú' | 'ù' | 'û' | 'ü' | 'Ú' | 'Ù' | 'Û' | 'Ü' => 'u',
+            'ç' | 'Ç' => 'c',
+            _ => ch,
+        })
+        .collect()
+}
+
+fn available_subject_slugs() -> Result<Vec<String>, PluginError> {
+    let registry = facet_registry()?;
+    Ok(registry
+        .subjects
+        .iter()
+        .map(|subject| subject.slug.clone())
+        .collect())
+}
+
+fn facet_registry() -> Result<&'static DiscoverFacetRegistry, PluginError> {
+    let parsed = FACET_REGISTRY.get_or_init(|| {
+        serde_json::from_str::<DiscoverFacetRegistry>(FACET_REGISTRY_JSON)
+            .map_err(|err| format!("failed to parse facet registry: {}", err))
+    });
+
+    match parsed {
+        Ok(registry) => Ok(registry),
+        Err(err) => Err(PluginError::ParsingFailure(err.clone())),
     }
 }
 

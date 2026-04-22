@@ -5,7 +5,6 @@
 - db: conexao e repositorios SQL.
 - models: DTOs compartilhados entre comandos e UI.
 - reader: leitura EPUB e saneamento de HTML.
-- search: orquestrador legado de search_books.
 - plugins: descoberta e execucao de componentes WASM por papel (discover, source, legacy_search).
 - download: ator, fila e workers de transferencia.
 
@@ -13,7 +12,6 @@
 - library: add_book, list_books.
 - reader: get_book_content, save_progress.
 - annotations: add/get/update/delete annotation.
-- search: search_books para plugins legados.
 - discover: list_discover_catalogs, list_discover_catalog_items, get_discover_item_details, search_source_downloads.
 - download: start/pause/resume/cancel/list downloads.
 
@@ -25,11 +23,11 @@
 - EpubParser extrai metadados, spine, TOC e conteudo de capitulo.
 - Saneamento remove links de stylesheet que quebram no WebView.
 
-## Search e plugins
-- SearchOrchestrator agrega resultados somente de plugins legacy_search.
+## Discover e plugins
 - PluginManager carrega wasm, identifica papel do addon e executa contrato especifico por world WIT.
 - Fluxo Discover chama plugins discover para catalogo e plugins source para links de download.
 - Addons sao instalados manualmente no diretorio de runtime do usuario.
+- O endpoint Tauri `search_books` foi removido para consolidar o fluxo Discover-first.
 
 ## Download
 - DownloadManager expoe API assincorna e delega para ator.

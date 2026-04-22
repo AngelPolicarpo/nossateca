@@ -13,16 +13,14 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 
 use crate::models::{
     AddonDescriptor, AddonRole, AddonSettingEntry, DiscoverCatalog, DiscoverCatalogItem,
-    DiscoverCatalogPageResponse, DiscoverItemDetails, PluginErrorKind, PluginTypedError,
-    SearchBookResult, SourceDownloadResult, SourcePluginInfo,
+    DiscoverCatalogPageResponse, DiscoverItemDetails, MangaChapter, MangaPageList,
+    MangaSourcePluginInfo, PluginErrorKind, PluginTypedError, SourceDownloadResult,
+    SourcePluginInfo,
 };
 
-mod legacy_bindings {
-    wasmtime::component::bindgen!({
-        path: "wit/search-plugin.wit",
-        world: "search-plugin",
-    });
-}
+const DEFAULT_PLUGIN_FUEL: u64 = 400_000_000;
+const MIN_PLUGIN_FUEL: u64 = 80_000_000;
+const MAX_PLUGIN_FUEL: u64 = 2_000_000_000;
 
 mod discover_bindings {
     wasmtime::component::bindgen!({
@@ -35,6 +33,13 @@ mod source_bindings {
     wasmtime::component::bindgen!({
         path: "wit/discover-source-plugin.wit",
         world: "source-plugin",
+    });
+}
+
+mod manga_source_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/discover-source-plugin.wit",
+        world: "manga-source-plugin",
     });
 }
 
@@ -125,37 +130,6 @@ impl WasiView for PluginHostState {
     }
 }
 
-impl legacy_bindings::lexicon::plugins::host_http::Host for PluginHostState {
-    fn send_http_request(
-        &mut self,
-        request: legacy_bindings::lexicon::plugins::search_types::HttpRequest,
-    ) -> std::result::Result<legacy_bindings::lexicon::plugins::search_types::HttpResponse, String>
-    {
-        let query = request
-            .query
-            .into_iter()
-            .map(|item| (item.key, item.value))
-            .collect::<Vec<_>>();
-
-        let headers = request
-            .headers
-            .into_iter()
-            .map(|item| (item.key, item.value))
-            .collect::<Vec<_>>();
-
-        let (status, body) = self.execute_http_raw(
-            &request.method,
-            &request.url,
-            query,
-            headers,
-            request.body,
-            request.timeout_ms,
-        )?;
-
-        Ok(legacy_bindings::lexicon::plugins::search_types::HttpResponse { status, body })
-    }
-}
-
 impl discover_bindings::lexicon::plugin_roles::host_http::Host for PluginHostState {
     fn send_http_request(
         &mut self,
@@ -226,13 +200,51 @@ impl source_bindings::lexicon::plugin_roles::host_http::Host for PluginHostState
     }
 }
 
+impl manga_source_bindings::lexicon::plugin_roles::host_http::Host for PluginHostState {
+    fn send_http_request(
+        &mut self,
+        request: manga_source_bindings::lexicon::plugin_roles::common_types::HttpRequest,
+    ) -> std::result::Result<
+        manga_source_bindings::lexicon::plugin_roles::common_types::HttpResponse,
+        String,
+    > {
+        let query = request
+            .query
+            .into_iter()
+            .map(|item| (item.key, item.value))
+            .collect::<Vec<_>>();
+
+        let headers = request
+            .headers
+            .into_iter()
+            .map(|item| (item.key, item.value))
+            .collect::<Vec<_>>();
+
+        let (status, body) = self.execute_http_raw(
+            &request.method,
+            &request.url,
+            query,
+            headers,
+            request.body,
+            request.timeout_ms,
+        )?;
+
+        Ok(
+            manga_source_bindings::lexicon::plugin_roles::common_types::HttpResponse {
+                status,
+                body,
+            },
+        )
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PluginDescriptor {
     pub id: String,
     pub file_name: String,
     pub path: PathBuf,
-    pub source_weight: f32,
     pub role: AddonRole,
+    pub enabled: bool,
     pub settings: Vec<AddonSettingEntry>,
 }
 
@@ -259,11 +271,23 @@ impl PluginManager {
 
         let engine = Engine::new(&config).context("failed to initialize wasmtime engine")?;
 
-        let fuel_per_invocation = env::var("LEXICON_PLUGIN_FUEL")
+        let requested_fuel = env::var("LEXICON_PLUGIN_FUEL")
             .ok()
-            .and_then(|value| value.trim().parse::<u64>().ok())
-            .map(|value| value.clamp(1_000_000, 200_000_000))
-            .unwrap_or(50_000_000);
+            .and_then(|value| value.trim().parse::<u64>().ok());
+
+        let fuel_per_invocation = match requested_fuel {
+            Some(value) => {
+                let clamped = value.clamp(MIN_PLUGIN_FUEL, MAX_PLUGIN_FUEL);
+                if clamped != value {
+                    eprintln!(
+                        "[plugin-manager] adjusted LEXICON_PLUGIN_FUEL from {} to {} (allowed range: {}..={})",
+                        value, clamped, MIN_PLUGIN_FUEL, MAX_PLUGIN_FUEL
+                    );
+                }
+                clamped
+            }
+            None => DEFAULT_PLUGIN_FUEL,
+        };
 
         Ok(Self {
             engine,
@@ -305,6 +329,7 @@ impl PluginManager {
                 file_name: plugin.file_name.clone(),
                 file_path: plugin.path.to_string_lossy().to_string(),
                 role: plugin.role.clone(),
+                enabled: plugin.enabled,
                 settings: plugin.settings.clone(),
             })
             .collect()
@@ -323,6 +348,7 @@ impl PluginManager {
                 .get(&plugin.id)
                 .cloned()
                 .unwrap_or_default();
+            plugin.enabled = resolve_plugin_enabled(&plugin.settings);
             plugin.role = resolve_plugin_role(&plugin.id, &plugin.settings);
         }
     }
@@ -333,6 +359,7 @@ impl PluginManager {
 
         if let Some(plugin) = self.plugins.iter_mut().find(|plugin| plugin.id == plugin_id) {
             plugin.settings = settings;
+            plugin.enabled = resolve_plugin_enabled(&plugin.settings);
             plugin.role = resolve_plugin_role(&plugin.id, &plugin.settings);
         }
     }
@@ -342,82 +369,9 @@ impl PluginManager {
 
         if let Some(plugin) = self.plugins.iter_mut().find(|plugin| plugin.id == plugin_id) {
             plugin.settings.clear();
+            plugin.enabled = true;
             plugin.role = resolve_plugin_role(&plugin.id, &plugin.settings);
         }
-    }
-
-    pub fn execute_plugin(
-        engine: &Engine,
-        fuel_per_invocation: u64,
-        plugin: &PluginDescriptor,
-        query: &str,
-    ) -> Result<Vec<SearchBookResult>> {
-        let component = Component::from_file(engine, &plugin.path).with_context(|| {
-            format!(
-                "failed to load plugin component from {}",
-                plugin.path.display()
-            )
-        })?;
-
-        let mut linker = Linker::<PluginHostState>::new(engine);
-        wasmtime_wasi::add_to_linker_sync(&mut linker)
-            .with_context(|| format!("failed to wire WASI imports for plugin '{}'", plugin.id))?;
-        legacy_bindings::lexicon::plugins::host_http::add_to_linker(&mut linker, |state| state)
-            .with_context(|| {
-                format!(
-                    "failed to wire host-http imports for plugin '{}'",
-                    plugin.id
-                )
-            })?;
-
-        let mut store = Store::new(engine, PluginHostState::new());
-
-        if let Err(err) = store.set_fuel(fuel_per_invocation) {
-            eprintln!(
-                "[plugin-manager] failed to configure fuel for plugin '{}' ({}): {}",
-                plugin.id,
-                plugin.path.display(),
-                err
-            );
-        }
-
-        let (exports, _instance) = legacy_bindings::SearchPlugin::instantiate(
-            &mut store,
-            &component,
-            &linker,
-        )
-        .with_context(|| format!("failed to instantiate plugin '{}'", plugin.id))?;
-
-        let search_settings = plugin
-            .settings
-            .iter()
-            .map(|setting| legacy_bindings::lexicon::plugins::search_types::SearchSetting {
-                key: setting.key.clone(),
-                value: setting.value.clone(),
-            })
-            .collect::<Vec<_>>();
-
-        let request = legacy_bindings::lexicon::plugins::search_types::SearchRequest {
-            query: query.to_string(),
-            settings: search_settings,
-        };
-
-        let results = exports
-            .call_search_books(&mut store, &request)
-            .with_context(|| format!("failed to call search_books on plugin '{}'", plugin.id))?;
-
-        Ok(results
-            .into_iter()
-            .map(|result| SearchBookResult {
-                id: result.id,
-                title: result.title,
-                author: result.author,
-                source: result.source,
-                format: result.format,
-                download_url: result.download_url,
-                score: result.score,
-            })
-            .collect())
     }
 
     pub fn execute_discover_list_catalogs(
@@ -476,6 +430,7 @@ impl PluginManager {
         page_size: u32,
         genre: Option<String>,
         year: Option<u32>,
+        search_query: Option<String>,
     ) -> Result<DiscoverCatalogPageResponse, PluginTypedError> {
         let component = Component::from_file(engine, &plugin.path)
             .map_err(|err| unknown_error(format!("failed to load discover plugin: {}", err)))?;
@@ -505,6 +460,7 @@ impl PluginManager {
             page_size,
             genre,
             year,
+            search_query,
         };
 
         let response = exports
@@ -525,6 +481,7 @@ impl PluginManager {
                         cover_url: item.cover_url,
                         genres: item.genres,
                         year: item.year,
+                        page_count: item.page_count,
                         short_description: item.short_description,
                         format: item.format,
                         isbn: item.isbn,
@@ -584,6 +541,7 @@ impl PluginManager {
                 cover_url: details.cover_url,
                 genres: details.genres,
                 year: details.year,
+                page_count: details.page_count,
                 format: details.format,
                 isbn: details.isbn,
                 origin_url: details.origin_url,
@@ -687,6 +645,138 @@ impl PluginManager {
         }
     }
 
+    pub fn execute_manga_get_source_info(
+        engine: &Engine,
+        fuel_per_invocation: u64,
+        plugin: &PluginDescriptor,
+    ) -> Result<MangaSourcePluginInfo, PluginTypedError> {
+        let component = Component::from_file(engine, &plugin.path)
+            .map_err(|err| unknown_error(format!("failed to load manga plugin: {}", err)))?;
+
+        let mut linker = Linker::<PluginHostState>::new(engine);
+        wasmtime_wasi::add_to_linker_sync(&mut linker)
+            .map_err(|err| unknown_error(format!("failed to wire WASI imports: {}", err)))?;
+
+        manga_source_bindings::lexicon::plugin_roles::host_http::add_to_linker(
+            &mut linker,
+            |state| state,
+        )
+        .map_err(|err| unknown_error(format!("failed to wire host-http imports: {}", err)))?;
+
+        let mut store = Store::new(engine, PluginHostState::new());
+        let _ = store.set_fuel(fuel_per_invocation);
+
+        let (exports, _instance) = manga_source_bindings::MangaSourcePlugin::instantiate(
+            &mut store,
+            &component,
+            &linker,
+        )
+        .map_err(|err| unknown_error(format!("failed to instantiate manga plugin: {}", err)))?;
+
+        let info = exports
+            .call_get_manga_source_info(&mut store)
+            .map_err(|err| unknown_error(format!("manga get_source_info failed: {}", err)))?;
+
+        Ok(MangaSourcePluginInfo {
+            plugin_id: plugin.id.clone(),
+            source_name: info.source_name,
+            source_id: info.source_id,
+        })
+    }
+
+    pub fn execute_manga_list_chapters(
+        engine: &Engine,
+        fuel_per_invocation: u64,
+        plugin: &PluginDescriptor,
+        manga_id: &str,
+    ) -> Result<Vec<MangaChapter>, PluginTypedError> {
+        let component = Component::from_file(engine, &plugin.path)
+            .map_err(|err| unknown_error(format!("failed to load manga plugin: {}", err)))?;
+
+        let mut linker = Linker::<PluginHostState>::new(engine);
+        wasmtime_wasi::add_to_linker_sync(&mut linker)
+            .map_err(|err| unknown_error(format!("failed to wire WASI imports: {}", err)))?;
+
+        manga_source_bindings::lexicon::plugin_roles::host_http::add_to_linker(
+            &mut linker,
+            |state| state,
+        )
+        .map_err(|err| unknown_error(format!("failed to wire host-http imports: {}", err)))?;
+
+        let mut store = Store::new(engine, PluginHostState::new());
+        let _ = store.set_fuel(fuel_per_invocation);
+
+        let (exports, _instance) = manga_source_bindings::MangaSourcePlugin::instantiate(
+            &mut store,
+            &component,
+            &linker,
+        )
+        .map_err(|err| unknown_error(format!("failed to instantiate manga plugin: {}", err)))?;
+
+        let response = exports
+            .call_list_chapters(&mut store, manga_id)
+            .map_err(|err| unknown_error(format!("manga list_chapters failed: {}", err)))?;
+
+        match response {
+            Ok(chapters) => Ok(chapters
+                .into_iter()
+                .map(|chapter| MangaChapter {
+                    id: chapter.id,
+                    chapter: chapter.chapter,
+                    volume: chapter.volume,
+                    title: chapter.title,
+                    language: chapter.language,
+                    pages: chapter.pages,
+                    published_at: chapter.published_at,
+                    scanlator: chapter.scanlator,
+                })
+                .collect()),
+            Err(err) => Err(map_manga_plugin_error(err)),
+        }
+    }
+
+    pub fn execute_manga_get_chapter_pages(
+        engine: &Engine,
+        fuel_per_invocation: u64,
+        plugin: &PluginDescriptor,
+        chapter_id: &str,
+    ) -> Result<MangaPageList, PluginTypedError> {
+        let component = Component::from_file(engine, &plugin.path)
+            .map_err(|err| unknown_error(format!("failed to load manga plugin: {}", err)))?;
+
+        let mut linker = Linker::<PluginHostState>::new(engine);
+        wasmtime_wasi::add_to_linker_sync(&mut linker)
+            .map_err(|err| unknown_error(format!("failed to wire WASI imports: {}", err)))?;
+
+        manga_source_bindings::lexicon::plugin_roles::host_http::add_to_linker(
+            &mut linker,
+            |state| state,
+        )
+        .map_err(|err| unknown_error(format!("failed to wire host-http imports: {}", err)))?;
+
+        let mut store = Store::new(engine, PluginHostState::new());
+        let _ = store.set_fuel(fuel_per_invocation);
+
+        let (exports, _instance) = manga_source_bindings::MangaSourcePlugin::instantiate(
+            &mut store,
+            &component,
+            &linker,
+        )
+        .map_err(|err| unknown_error(format!("failed to instantiate manga plugin: {}", err)))?;
+
+        let response = exports
+            .call_get_chapter_pages(&mut store, chapter_id)
+            .map_err(|err| unknown_error(format!("manga get_chapter_pages failed: {}", err)))?;
+
+        match response {
+            Ok(page_list) => Ok(MangaPageList {
+                chapter_id: page_list.chapter_id,
+                page_urls: page_list.page_urls,
+            }),
+            Err(err) => Err(map_manga_plugin_error(err)),
+        }
+    }
+
     fn load_plugins_from_directory(&mut self, directory: &Path) -> Result<()> {
         if !directory.exists() || !directory.is_dir() {
             return Ok(());
@@ -728,14 +818,15 @@ impl PluginManager {
                 .unwrap_or_else(|| format!("{}.wasm", id));
 
             let settings = self.plugin_settings.get(&id).cloned().unwrap_or_default();
+            let enabled = resolve_plugin_enabled(&settings);
             let role = resolve_plugin_role(&id, &settings);
 
             self.plugins.push(PluginDescriptor {
                 id,
                 file_name,
                 path,
-                source_weight: 0.5,
                 role,
+                enabled,
                 settings,
             });
         }
@@ -744,41 +835,22 @@ impl PluginManager {
 
         Ok(())
     }
+}
 
-    pub fn mock_results_for(query: &str) -> Vec<SearchBookResult> {
-        vec![
-            SearchBookResult {
-                id: format!("fallback-{}-1", slugify(query)),
-                title: format!("{} (Resultado local de desenvolvimento)", capitalize(query)),
-                author: Some("Lexicon Dev".to_string()),
-                source: "dev-fallback".to_string(),
-                format: Some("epub".to_string()),
-                download_url: format!(
-                    "https://example.com/downloads/{}-study.epub",
-                    slugify(query)
-                ),
-                score: 0.95,
-            },
-            SearchBookResult {
-                id: format!("fallback-{}-2", slugify(query)),
-                title: format!("Guia pratico de {}", capitalize(query)),
-                author: Some("Autor Simulado".to_string()),
-                source: "dev-fallback".to_string(),
-                format: Some("pdf".to_string()),
-                download_url: format!("https://example.com/downloads/{}-guide.pdf", slugify(query)),
-                score: 0.88,
-            },
-            SearchBookResult {
-                id: format!("fallback-{}-3", slugify(query)),
-                title: format!("Colecao essencial: {}", capitalize(query)),
-                author: None,
-                source: "dev-fallback".to_string(),
-                format: Some("epub".to_string()),
-                download_url: format!("magnet:?xt=urn:btih:{}", fake_magnet_hash(query)),
-                score: 0.82,
-            },
-        ]
+fn resolve_plugin_enabled(settings: &[AddonSettingEntry]) -> bool {
+    let Some(value) = settings
+        .iter()
+        .find(|entry| normalize_setting_key(&entry.key) == "enabled")
+        .map(|entry| entry.value.trim().to_ascii_lowercase())
+    else {
+        return true;
+    };
+
+    if value.is_empty() {
+        return true;
     }
+
+    !matches!(value.as_str(), "0" | "false" | "off" | "no" | "disabled")
 }
 
 fn resolve_plugin_role(id: &str, settings: &[AddonSettingEntry]) -> AddonRole {
@@ -793,6 +865,7 @@ fn resolve_plugin_role(id: &str, settings: &[AddonSettingEntry]) -> AddonRole {
         return match explicit_role.as_str() {
             "discover" => AddonRole::Discover,
             "source" => AddonRole::Source,
+            "manga_source" | "manga-source" => AddonRole::MangaSource,
             "legacy_search" | "legacy-search" | "legacy" => AddonRole::LegacySearch,
             _ => infer_role_from_id(id),
         };
@@ -809,6 +882,9 @@ fn infer_role_from_id(id: &str) -> AddonRole {
     }
 
     if normalized.contains("source-plugin") {
+        if normalized.contains("manga") {
+            return AddonRole::MangaSource;
+        }
         return AddonRole::Source;
     }
 
@@ -893,6 +969,43 @@ fn map_source_plugin_error(
     }
 }
 
+fn map_manga_plugin_error(
+    err: manga_source_bindings::lexicon::plugin_roles::common_types::PluginError,
+) -> PluginTypedError {
+    match err {
+        manga_source_bindings::lexicon::plugin_roles::common_types::PluginError::NetworkFailure(
+            message,
+        ) => PluginTypedError {
+            kind: PluginErrorKind::NetworkFailure,
+            message,
+        },
+        manga_source_bindings::lexicon::plugin_roles::common_types::PluginError::ParsingFailure(
+            message,
+        ) => PluginTypedError {
+            kind: PluginErrorKind::ParsingFailure,
+            message,
+        },
+        manga_source_bindings::lexicon::plugin_roles::common_types::PluginError::RateLimit(
+            message,
+        ) => PluginTypedError {
+            kind: PluginErrorKind::RateLimit,
+            message,
+        },
+        manga_source_bindings::lexicon::plugin_roles::common_types::PluginError::NotFound(
+            message,
+        ) => PluginTypedError {
+            kind: PluginErrorKind::NotFound,
+            message,
+        },
+        manga_source_bindings::lexicon::plugin_roles::common_types::PluginError::Unknown(
+            message,
+        ) => PluginTypedError {
+            kind: PluginErrorKind::Unknown,
+            message,
+        },
+    }
+}
+
 fn unknown_error(message: String) -> PluginTypedError {
     PluginTypedError {
         kind: PluginErrorKind::Unknown,
@@ -917,50 +1030,4 @@ fn is_download_url_usable(url: &str) -> bool {
     let lowered = normalized.to_ascii_lowercase();
 
     !lowered.ends_with(".html") && !lowered.contains("/search")
-}
-
-fn slugify(value: &str) -> String {
-    let mut output = String::new();
-
-    for character in value.chars() {
-        if character.is_ascii_alphanumeric() {
-            output.push(character.to_ascii_lowercase());
-            continue;
-        }
-
-        if (character.is_whitespace() || character == '-' || character == '_')
-            && !output.ends_with('-')
-        {
-            output.push('-');
-        }
-    }
-
-    output.trim_matches('-').to_string()
-}
-
-fn capitalize(value: &str) -> String {
-    let mut chars = value.chars();
-
-    match chars.next() {
-        Some(first) => format!("{}{}", first.to_uppercase(), chars.as_str()),
-        None => String::new(),
-    }
-}
-
-fn fake_magnet_hash(query: &str) -> String {
-    let normalized = slugify(query);
-    let mut hex = String::new();
-
-    for byte in normalized.as_bytes() {
-        hex.push_str(&format!("{:02x}", byte));
-        if hex.len() >= 40 {
-            break;
-        }
-    }
-
-    if hex.len() < 40 {
-        hex.push_str(&"0".repeat(40 - hex.len()));
-    }
-
-    hex
 }

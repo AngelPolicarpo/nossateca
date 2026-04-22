@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply font-primary text-ui-text;
+  }
+}
+
+@layer components {
+  .lx-panel {
+    @apply rounded-[var(--radius-12)] border border-black/10 bg-ui-surface shadow-[0_4px_18px_rgba(0,0,0,0.04),0_2.025px_7.84688px_rgba(0,0,0,0.027),0_0.8px_2.925px_rgba(0,0,0,0.02),0_0.175px_1.04062px_rgba(0,0,0,0.01)];
+  }
+
+  .lx-pill {
+    @apply inline-flex items-center gap-[var(--space-4)] rounded-[9999px] border border-black/10 bg-ui-surfaceAlt px-[var(--space-8)] py-[var(--space-4)] text-[12px] font-semibold leading-[1.33] tracking-[0.125px] text-ui-secondary;
+  }
+}

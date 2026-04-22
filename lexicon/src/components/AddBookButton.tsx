@@ -1,16 +1,24 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { Button } from "./ui/Button";
+
+type AddBookButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type AddBookButtonSize = "md" | "sm";
 
 type AddBookButtonProps = {
   onBookAdded: () => void | Promise<void>;
   label?: string;
   className?: string;
+  variant?: AddBookButtonVariant;
+  size?: AddBookButtonSize;
 };
 
 export function AddBookButton({
   onBookAdded,
   label = "Adicionar livro",
-  className = "primary-button",
+  className,
+  variant = "primary",
+  size = "md",
 }: AddBookButtonProps) {
   const handleAddBook = async () => {
     try {
@@ -20,7 +28,7 @@ export function AddBookButton({
         filters: [
           {
             name: "Livros digitais",
-            extensions: ["epub", "pdf"],
+            extensions: ["epub", "pdf", "cbz"],
           },
         ],
       });
@@ -40,8 +48,14 @@ export function AddBookButton({
   };
 
   return (
-    <button type="button" onClick={handleAddBook} className={className}>
+    <Button
+      type="button"
+      variant={variant}
+      size={size}
+      onClick={() => void handleAddBook()}
+      className={className}
+    >
       {label}
-    </button>
+    </Button>
   );
 }

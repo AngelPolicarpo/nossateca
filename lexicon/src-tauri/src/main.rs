@@ -10,7 +10,6 @@ mod download;
 mod models;
 mod plugins;
 mod reader;
-mod search;
 mod storage;
 
 use download::DownloadManager;
@@ -119,12 +118,17 @@ fn main() {
                 plugin_manager.plugin_count()
             );
 
-            let download_manager =
-                Arc::new(DownloadManager::new(app.handle().clone(), db_pool.clone()));
+            let plugin_manager_shared = Arc::new(Mutex::new(plugin_manager));
+
+            let download_manager = Arc::new(DownloadManager::new(
+                app.handle().clone(),
+                db_pool.clone(),
+                plugin_manager_shared.clone(),
+            ));
 
             app.manage(AppState {
                 _db_pool: db_pool,
-                plugin_manager: Arc::new(Mutex::new(plugin_manager)),
+                plugin_manager: plugin_manager_shared,
                 plugin_runtime_dir: runtime_plugins,
                 download_manager,
             });
@@ -137,14 +141,17 @@ fn main() {
             commands::library::list_books,
             commands::library::remove_book,
             commands::reader::get_book_content,
+            commands::reader::resolve_epub_link_target,
             commands::reader::get_pdf_document,
+            commands::reader::get_cbz_page,
+            commands::reader::get_reading_progress,
+            commands::reader::search_epub_content,
             commands::reader::save_progress,
             commands::annotations::add_annotation,
             commands::annotations::get_annotations,
             commands::annotations::update_annotation_note,
             commands::annotations::update_annotation_color,
             commands::annotations::delete_annotation,
-            commands::search::search_books,
             commands::discover::list_discover_catalogs,
             commands::discover::list_discover_catalog_items,
             commands::discover::get_discover_item_details,
@@ -155,12 +162,14 @@ fn main() {
             commands::addons::remove_addon,
             commands::addons::get_addon_settings,
             commands::addons::update_addon_settings,
+            commands::addons::set_addon_enabled,
             commands::download::start_download,
             commands::download::pause_download,
             commands::download::resume_download,
             commands::download::cancel_download,
             commands::download::remove_download,
-            commands::download::list_downloads
+            commands::download::list_downloads,
+            commands::manga::list_manga_chapters
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

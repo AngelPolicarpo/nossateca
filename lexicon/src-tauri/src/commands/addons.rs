@@ -9,6 +9,7 @@ use crate::plugins::PluginManager;
 use crate::AppState;
 
 const ADDON_SETTING_PREFIX: &str = "addon::";
+const ADDON_ENABLED_KEY: &str = "enabled";
 
 #[tauri::command]
 pub async fn list_addons(state: State<'_, AppState>) -> Result<Vec<AddonDescriptor>, String> {
@@ -180,6 +181,69 @@ pub async fn update_addon_settings(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn set_addon_enabled(
+    addon_id: String,
+    enabled: bool,
+    state: State<'_, AppState>,
+) -> Result<AddonDescriptor, String> {
+    let normalized_id = addon_id.trim().to_string();
+    if normalized_id.is_empty() {
+        return Err("addon id is required".to_string());
+    }
+
+    let current_settings = {
+        let plugin_manager = state
+            .plugin_manager
+            .lock()
+            .map_err(|_| "failed to lock plugin manager".to_string())?;
+
+        plugin_manager
+            .plugin_by_id(&normalized_id)
+            .map(|plugin| plugin.settings)
+            .ok_or_else(|| format!("addon '{}' not found", normalized_id))?
+    };
+
+    let mut next_settings = current_settings;
+    let enabled_value = if enabled {
+        "true".to_string()
+    } else {
+        "false".to_string()
+    };
+
+    if let Some(setting) = next_settings
+        .iter_mut()
+        .find(|setting| normalize_setting_key(&setting.key) == ADDON_ENABLED_KEY)
+    {
+        setting.key = ADDON_ENABLED_KEY.to_string();
+        setting.value = enabled_value.clone();
+    } else {
+        next_settings.push(AddonSettingEntry {
+            key: ADDON_ENABLED_KEY.to_string(),
+            value: enabled_value,
+        });
+    }
+
+    let normalized_settings = normalize_settings(next_settings);
+
+    persist_addon_settings(&state._db_pool, &normalized_id, &normalized_settings)
+        .await
+        .map_err(|err| err.to_string())?;
+
+    let mut plugin_manager = state
+        .plugin_manager
+        .lock()
+        .map_err(|_| "failed to lock plugin manager".to_string())?;
+
+    plugin_manager.set_plugin_settings(&normalized_id, normalized_settings);
+
+    plugin_manager
+        .list_plugins()
+        .into_iter()
+        .find(|addon| addon.id == normalized_id)
+        .ok_or_else(|| format!("addon '{}' not found after update", normalized_id))
+}
+
 pub async fn hydrate_addon_settings_from_db(
     pool: &sqlx::SqlitePool,
     plugin_manager: &mut PluginManager,
@@ -310,6 +374,10 @@ fn derive_target_file_name(path: &Path) -> Result<String, String> {
     }
 
     Ok(format!("{}.wasm", normalized))
+}
+
+fn normalize_setting_key(key: &str) -> String {
+    key.trim().to_ascii_lowercase().replace('-', "_")
 }
 
 fn normalize_settings(settings: Vec<AddonSettingEntry>) -> Vec<AddonSettingEntry> {

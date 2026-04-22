@@ -32,8 +32,8 @@ pub async fn add_book(file_path: String, state: State<'_, AppState>) -> Result<B
         .map(|ext| ext.to_ascii_lowercase())
         .ok_or_else(|| "File extension is missing".to_string())?;
 
-    if extension != "epub" && extension != "pdf" {
-        return Err("Only .epub and .pdf files are supported right now".to_string());
+    if extension != "epub" && extension != "pdf" && extension != "cbz" {
+        return Err("Only .epub, .pdf and .cbz files are supported right now".to_string());
     }
 
     let metadata = extract_book_metadata(&file_path, &extension)?;
@@ -88,10 +88,24 @@ fn extract_book_metadata(file_path: &str, extension: &str) -> Result<BookImportM
 
     let fallback_title = fallback_title_from_path(Path::new(file_path));
 
+    let author = if extension == "cbz" {
+        cbz_parent_directory_label(Path::new(file_path))
+    } else {
+        None
+    };
+
     Ok(BookImportMetadata {
         title: fallback_title,
-        author: None,
+        author,
     })
+}
+
+fn cbz_parent_directory_label(path: &Path) -> Option<String> {
+    let parent_name = path.parent()?.file_name()?.to_str()?.trim().to_string();
+    if parent_name.is_empty() {
+        return None;
+    }
+    Some(parent_name)
 }
 
 fn fallback_title_from_path(path: &Path) -> String {

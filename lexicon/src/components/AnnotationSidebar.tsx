@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CustomSelect, type SelectOption } from "./ui/CustomSelect";
 
 type Annotation = {
   id: string;
@@ -22,6 +23,8 @@ type AnnotationSidebarProps = {
   onSelectAnnotation: (annotation: Annotation) => Promise<void>;
 };
 
+type AnnotationFilter = "all" | "highlight" | "bookmark";
+
 const colorOptions: Annotation["color"][] = [
   "yellow",
   "green",
@@ -29,6 +32,19 @@ const colorOptions: Annotation["color"][] = [
   "pink",
   "purple",
 ];
+
+const colorOptionLabels: Record<Annotation["color"], string> = {
+  yellow: "Amarelo",
+  green: "Verde",
+  blue: "Azul",
+  pink: "Rosa",
+  purple: "Roxo",
+};
+
+const colorSelectOptions: SelectOption[] = colorOptions.map((option) => ({
+  value: option,
+  label: colorOptionLabels[option],
+}));
 
 export function AnnotationSidebar({
   annotations,
@@ -39,21 +55,70 @@ export function AnnotationSidebar({
   onSelectAnnotation,
 }: AnnotationSidebarProps) {
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
+  const [activeFilter, setActiveFilter] = useState<AnnotationFilter>("all");
+  const filteredAnnotations = annotations.filter((annotation) => {
+    if (activeFilter === "all") {
+      return true;
+    }
+
+    return annotation.annotation_type === activeFilter;
+  });
+
+  const formatAnnotationType = (annotationType: string): string => {
+    if (annotationType === "highlight") {
+      return "Destaque";
+    }
+
+    if (annotationType === "bookmark") {
+      return "Marcador";
+    }
+
+    return annotationType;
+  };
 
   return (
     <aside className="annotation-sidebar">
       <h3>Anotações</h3>
+      <div className="annotation-filters" role="group" aria-label="Filtrar anotações">
+        <button
+          type="button"
+          className={activeFilter === "all" ? "active" : ""}
+          onClick={() => setActiveFilter("all")}
+        >
+          Todas
+        </button>
+        <button
+          type="button"
+          className={activeFilter === "highlight" ? "active" : ""}
+          onClick={() => setActiveFilter("highlight")}
+        >
+          Destaques
+        </button>
+        <button
+          type="button"
+          className={activeFilter === "bookmark" ? "active" : ""}
+          onClick={() => setActiveFilter("bookmark")}
+        >
+          Marcadores
+        </button>
+      </div>
+
       {loading && <p>Carregando anotações...</p>}
-      {!loading && annotations.length === 0 && <p>Nenhuma anotação neste livro.</p>}
+      {!loading && filteredAnnotations.length === 0 && <p>Nenhuma anotação neste filtro.</p>}
 
       {!loading &&
-        annotations.map((annotation) => {
+        filteredAnnotations.map((annotation) => {
           const draft = draftNotes[annotation.id] ?? annotation.note_text ?? "";
+          const previewText = annotation.selected_text?.trim()
+            ? annotation.selected_text
+            : annotation.annotation_type === "bookmark"
+              ? "(marcador de posição)"
+              : "(sem texto selecionado)";
 
           return (
             <article
               key={annotation.id}
-              className="annotation-item"
+              className={`annotation-item color-${annotation.color}`}
               onClick={() => void onSelectAnnotation(annotation)}
               role="button"
               tabIndex={0}
@@ -66,29 +131,29 @@ export function AnnotationSidebar({
             >
               <header>
                 <span className={`annotation-color-dot ${annotation.color}`} />
-                <strong>{annotation.annotation_type}</strong>
+                <strong>{formatAnnotationType(annotation.annotation_type)}</strong>
               </header>
 
-              <p className="annotation-text">{annotation.selected_text ?? "(sem texto selecionado)"}</p>
+              <p className="annotation-text">{previewText}</p>
 
               <label>
                 Cor
-                <select
-                  value={annotation.color}
+                <div
                   onClick={(event) => event.stopPropagation()}
                   onKeyDown={(event) => event.stopPropagation()}
-                  onChange={(event) => {
-                    event.stopPropagation();
-                    const selectedColor = event.currentTarget.value as Annotation["color"];
-                    void onColorChange(annotation.id, selectedColor);
-                  }}
                 >
-                  {colorOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  <CustomSelect
+                    ariaLabel="Cor da anotação"
+                    value={annotation.color}
+                    options={colorSelectOptions}
+                    onValueChange={(nextValue) => {
+                      void onColorChange(annotation.id, nextValue as Annotation["color"]);
+                    }}
+                    triggerClassName="annotation-color-select-trigger"
+                    menuClassName="annotation-color-select-menu"
+                    optionClassName="annotation-color-select-option"
+                  />
+                </div>
               </label>
 
               <label>
@@ -116,7 +181,7 @@ export function AnnotationSidebar({
                     void onAddNote(annotation.id, draft);
                   }}
                 >
-                  Adicionar nota
+                  Salvar nota
                 </button>
                 <button
                   type="button"

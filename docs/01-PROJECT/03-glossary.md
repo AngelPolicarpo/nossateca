@@ -28,5 +28,12 @@
 - finished: livro concluido.
 - queued/downloading/paused/completed/failed/cancelled: estados de download.
 
+## Termos de continuidade operacional
+- Reset de contexto: processo padrao de retomada de sessao usando leitura canonica e checklist.
+- Pacote de handoff: resumo curto com objetivo, decisoes, riscos e proximas acoes.
+- Fonte canonica: documento oficial a ser priorizado quando houver conflito de informacao.
+- Risco aberto: ponto conhecido que ainda nao foi resolvido e exige rastreabilidade.
+- Validation checklist: lista objetiva para confirmar que a sessao foi retomada corretamente.
+
 ## ⚠️ Inconsistências encontradas
-- O status indexed ainda aparece em partes da UI como estado pronto, mas nao e mais gerado pelo backend atual.
+- Existe artefato de busca legada no frontend (`hooks/useSearch.ts`) apontando para `search_books`, enquanto o backend atual nao expoe mais esse comando.

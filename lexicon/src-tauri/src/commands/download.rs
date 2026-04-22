@@ -7,11 +7,12 @@ use crate::AppState;
 pub async fn start_download(
     source_url: String,
     file_name: Option<String>,
+    subfolder: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<DownloadRecord, String> {
     state
         .download_manager
-        .start_download(source_url, file_name)
+        .start_download(source_url, file_name, subfolder)
         .await
 }
 

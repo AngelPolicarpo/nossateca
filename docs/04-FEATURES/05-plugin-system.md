@@ -5,9 +5,8 @@ Permitir extensao por plugins com papeis isolados, sem acoplar catalogo e resolu
 
 ## Componentes principais
 - Runtime: plugins/manager.rs.
-- Orquestracao legacy: search/orchestrator.rs.
 - Orquestracao Discover/Source: commands/discover.rs.
-- Contratos: wit/search-plugin.wit (legacy) e wit/discover-source-plugin.wit (novo).
+- Contratos: wit/discover-source-plugin.wit.
 - Comandos de addon: commands/addons.rs.
 - UI Discover: src/components/DiscoverView.tsx.
 - UI de addon: src/components/AddonsView.tsx.
@@ -15,7 +14,7 @@ Permitir extensao por plugins com papeis isolados, sem acoplar catalogo e resolu
 ## Papeis de plugin
 - Discover: list-catalogs, list-catalog-items, get-item-details.
 - Source: get-source-info, find-downloads.
-- Legacy Search: search-books (compatibilidade com fluxo search_books existente).
+- Legacy Search: papel mantido apenas para compatibilidade interna, sem endpoint Tauri publico.
 
 ## Fluxo de execucao
 1. Usuario abre Discover e host chama list_discover_catalogs.
@@ -23,7 +22,7 @@ Permitir extensao por plugins com papeis isolados, sem acoplar catalogo e resolu
 3. Usuario seleciona item e host chama get_discover_item_details.
 4. Host dispara search_source_downloads em paralelo para todos os plugins Source instalados.
 5. UI agrupa resultados por fonte e permite enfileirar download.
-6. Fluxo search_books antigo continua ativo apenas para plugins Legacy Search.
+6. O endpoint Tauri legado `search_books` foi removido para consolidar o fluxo Discover-first.
 
 ## Configuracao
 - Configuracoes sao persistidas em user_settings por addon.
@@ -44,4 +43,4 @@ Permitir extensao por plugins com papeis isolados, sem acoplar catalogo e resolu
 - Core nao integra fonte externa de forma fixa; plugins sao intercambiaveis por contrato.
 
 ## ⚠️ Inconsistências encontradas
-- search_books legado e Discover/Source coexistem no runtime; backlog futuro pode remover fluxo legado quando migracao de UI estiver concluida.
+- Ainda existem estruturas internas de compatibilidade para Legacy Search no runtime, mesmo com a fronteira Tauri consolidada em Discover-first.
