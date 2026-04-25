@@ -1,115 +1,66 @@
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use tauri::Manager;
+const DB_FILE_NAME: &str = "nossateca.db";
+const DATA_SUBDIR: &str = "dados";
+const PLUGINS_SUBDIR: &str = "plugins";
+const ACERVO_SUBDIR: &str = "acervo";
+const DOWNLOADS_SUBDIR: &str = "baixados";
 
-const LEGACY_DATA_DIR_NAME: &str = "com.god.lexicon";
-const DATA_DIR_NAME: &str = "lexicon";
-
-pub fn resolve_lexicon_data_dir(app: &tauri::AppHandle) -> anyhow::Result<PathBuf> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|err| anyhow::anyhow!("failed to resolve app data dir: {}", err))?;
-
-    let canonical_data_dir = canonicalize_data_dir(&app_data_dir);
-
-    if canonical_data_dir != app_data_dir {
-        migrate_legacy_data_dir(&app_data_dir, &canonical_data_dir)?;
-    }
-
-    fs::create_dir_all(&canonical_data_dir)?;
-
-    Ok(canonical_data_dir)
+pub fn resolve_portable_root() -> anyhow::Result<PathBuf> {
+    let exe = env::current_exe()
+        .map_err(|err| anyhow::anyhow!("failed to resolve current executable path: {}", err))?;
+    let parent = exe
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("current executable has no parent directory"))?
+        .to_path_buf();
+    Ok(parent)
 }
 
-fn canonicalize_data_dir(app_data_dir: &Path) -> PathBuf {
-    match app_data_dir.file_name().and_then(|name| name.to_str()) {
-        Some(LEGACY_DATA_DIR_NAME) => app_data_dir
-            .parent()
-            .map(|parent| parent.join(DATA_DIR_NAME))
-            .unwrap_or_else(|| app_data_dir.to_path_buf()),
-        _ => app_data_dir.to_path_buf(),
-    }
+fn ensure_subdir(name: &str) -> anyhow::Result<PathBuf> {
+    let dir = resolve_portable_root()?.join(name);
+    fs::create_dir_all(&dir)
+        .map_err(|err| anyhow::anyhow!("failed to create '{}' directory: {}", name, err))?;
+    Ok(dir)
 }
 
-fn migrate_legacy_data_dir(legacy_dir: &Path, canonical_dir: &Path) -> anyhow::Result<()> {
-    if !legacy_dir.exists() {
-        return Ok(());
-    }
-
-    if canonical_dir.exists() {
-        move_selected_legacy_entries(legacy_dir, canonical_dir)?;
-        return Ok(());
-    }
-
-    if let Some(parent) = canonical_dir.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    match fs::rename(legacy_dir, canonical_dir) {
-        Ok(()) => Ok(()),
-        Err(_) => {
-            copy_dir_recursive(legacy_dir, canonical_dir)?;
-            fs::remove_dir_all(legacy_dir)?;
-            Ok(())
-        }
-    }
+pub fn resolve_data_dir() -> anyhow::Result<PathBuf> {
+    ensure_subdir(DATA_SUBDIR)
 }
 
-fn move_selected_legacy_entries(legacy_dir: &Path, canonical_dir: &Path) -> anyhow::Result<()> {
-    for name in ["lexicon.db", "downloads", "plugins"] {
-        let source_path = legacy_dir.join(name);
-        if !source_path.exists() {
-            continue;
-        }
-
-        let target_path = canonical_dir.join(name);
-        if target_path.exists() {
-            continue;
-        }
-
-        move_path_with_fallback(&source_path, &target_path)?;
-    }
-
-    Ok(())
+pub fn resolve_db_path() -> anyhow::Result<PathBuf> {
+    Ok(resolve_data_dir()?.join(DB_FILE_NAME))
 }
 
-fn move_path_with_fallback(source: &Path, target: &Path) -> anyhow::Result<()> {
-    match fs::rename(source, target) {
-        Ok(()) => Ok(()),
-        Err(_) => {
-            if source.is_dir() {
-                copy_dir_recursive(source, target)?;
-                fs::remove_dir_all(source)?;
-            } else {
-                if let Some(parent) = target.parent() {
-                    fs::create_dir_all(parent)?;
-                }
-                fs::copy(source, target)?;
-                fs::remove_file(source)?;
-            }
+pub fn resolve_plugins_dir() -> anyhow::Result<PathBuf> {
+    ensure_subdir(PLUGINS_SUBDIR)
+}
 
-            Ok(())
-        }
+pub fn resolve_acervo_dir() -> anyhow::Result<PathBuf> {
+    ensure_subdir(ACERVO_SUBDIR)
+}
+
+pub fn resolve_downloads_dir() -> anyhow::Result<PathBuf> {
+    ensure_subdir(DOWNLOADS_SUBDIR)
+}
+
+pub fn expand_stored_path(stored: &str) -> PathBuf {
+    let path = Path::new(stored);
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    match resolve_portable_root() {
+        Ok(root) => root.join(path),
+        Err(_) => path.to_path_buf(),
     }
 }
 
-fn copy_dir_recursive(source: &Path, target: &Path) -> anyhow::Result<()> {
-    fs::create_dir_all(target)?;
-
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
-        let source_path = entry.path();
-        let target_path = target.join(entry.file_name());
-
-        if source_path.is_dir() {
-            copy_dir_recursive(&source_path, &target_path)?;
-            continue;
+pub fn to_relative_stored(absolute: &Path) -> String {
+    if let Ok(root) = resolve_portable_root() {
+        if let Ok(rel) = absolute.strip_prefix(&root) {
+            return rel.to_string_lossy().to_string();
         }
-
-        fs::copy(&source_path, &target_path)?;
     }
-
-    Ok(())
+    absolute.to_string_lossy().to_string()
 }

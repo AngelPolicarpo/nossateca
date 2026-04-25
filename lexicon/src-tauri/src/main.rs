@@ -29,6 +29,22 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+fn resolve_bundled_plugins_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let candidate = resource_dir.join("plugins").join("dist");
+        if candidate.exists() {
+            return Some(candidate);
+        }
+    }
+
+    let dev_candidate = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("plugins/dist");
+    if dev_candidate.exists() {
+        return Some(dev_candidate);
+    }
+
+    None
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -36,15 +52,12 @@ fn main() {
             let db_pool = tauri::async_runtime::block_on(db::init_db(app.handle()))
                 .expect("failed to initialize SQLite database");
 
-            let data_dir = storage::resolve_lexicon_data_dir(app.handle())
-                .expect("failed to resolve lexicon app data directory");
+            let runtime_plugins = storage::resolve_plugins_dir()
+                .expect("failed to resolve portable plugins directory");
 
-            let runtime_plugins = data_dir.join("plugins");
-            std::fs::create_dir_all(&runtime_plugins)
-                .expect("failed to create runtime plugin directory");
-
-            let bundled_plugins = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("plugins/dist");
-            if bundled_plugins.exists() {
+            let bundled_plugins = resolve_bundled_plugins_dir(app.handle());
+            if bundled_plugins.as_ref().is_some_and(|path| path.exists()) {
+                let bundled_plugins = bundled_plugins.unwrap();
                 if let Ok(entries) = std::fs::read_dir(&bundled_plugins) {
                     for entry in entries.flatten() {
                         let source_path = entry.path();

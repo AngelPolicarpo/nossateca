@@ -2,9 +2,19 @@ use anyhow::{bail, Result};
 use sqlx::SqlitePool;
 
 use crate::models::Book;
+use crate::storage;
 
 pub struct BookRepository<'a> {
     pool: &'a SqlitePool,
+}
+
+fn expand_book_path(book: &mut Book) {
+    let trimmed = book.file_path.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    let absolute = storage::expand_stored_path(trimmed);
+    book.file_path = absolute.to_string_lossy().to_string();
 }
 
 impl<'a> BookRepository<'a> {
@@ -36,7 +46,10 @@ impl<'a> BookRepository<'a> {
         .fetch_optional(self.pool)
         .await?;
 
-        Ok(row)
+        Ok(row.map(|mut book| {
+            expand_book_path(&mut book);
+            book
+        }))
     }
 
     pub async fn find_by_id(&self, book_id: i64) -> Result<Option<Book>> {
@@ -47,15 +60,22 @@ impl<'a> BookRepository<'a> {
         .fetch_optional(self.pool)
         .await?;
 
-        Ok(row)
+        Ok(row.map(|mut book| {
+            expand_book_path(&mut book);
+            book
+        }))
     }
 
     pub async fn list_all(&self) -> Result<Vec<Book>> {
-        let rows = sqlx::query_as::<_, Book>(
+        let mut rows = sqlx::query_as::<_, Book>(
             "SELECT id, title, author, format, file_path, file_hash, status, created_at FROM books ORDER BY created_at DESC, id DESC",
         )
         .fetch_all(self.pool)
         .await?;
+
+        for book in rows.iter_mut() {
+            expand_book_path(book);
+        }
 
         Ok(rows)
     }

@@ -414,12 +414,11 @@ impl DownloadActor {
             .filter(|value| !value.is_empty())
             .map(sanitize_file_name);
 
-        let initial_file_path = match subfolder {
+        let initial_file_path_abs = match subfolder {
             Some(folder) => downloads_dir.join(folder).join(&file_name),
             None => downloads_dir.join(&file_name),
-        }
-        .to_string_lossy()
-        .to_string();
+        };
+        let initial_file_path_stored = crate::storage::to_relative_stored(&initial_file_path_abs);
 
         sqlx::query(
             "INSERT INTO downloads (id, source_url, source_type, file_name, file_path, status, downloaded_bytes, speed_bps, max_retries)
@@ -429,7 +428,7 @@ impl DownloadActor {
         .bind(&normalized_url)
         .bind(&source_type)
         .bind(&file_name)
-        .bind(&initial_file_path)
+        .bind(&initial_file_path_stored)
         .execute(&self.pool)
         .await
         .map_err(|err| err.to_string())?;
@@ -1186,7 +1185,7 @@ async fn run_http_download(
         )
         .bind(downloaded_bytes)
         .bind(downloaded_bytes)
-        .bind(destination_path.to_string_lossy().to_string())
+        .bind(crate::storage::to_relative_stored(&destination_path))
         .bind(&download.id)
         .execute(&pool)
         .await
@@ -2053,7 +2052,7 @@ async fn run_manga_cbz_download(
     )
     .bind(total_pages)
     .bind(total_pages)
-    .bind(destination_path.to_string_lossy().to_string())
+    .bind(crate::storage::to_relative_stored(&destination_path))
     .bind(&download.id)
     .execute(&pool)
     .await
@@ -2239,12 +2238,15 @@ async fn update_download_status(
         completed_sql
     );
 
+    let file_path_stored = file_path
+        .map(|value| crate::storage::to_relative_stored(Path::new(&value)));
+
     sqlx::query(&query)
         .bind(status)
         .bind(total_bytes)
         .bind(downloaded_bytes)
         .bind(speed_bps)
-        .bind(file_path)
+        .bind(file_path_stored)
         .bind(id)
         .execute(pool)
         .await?;
@@ -2322,7 +2324,7 @@ fn emit_progress(
 }
 
 async fn list_downloads_internal(pool: &SqlitePool) -> Result<Vec<DownloadRecord>, sqlx::Error> {
-    sqlx::query_as::<_, DownloadRecord>(
+    let mut records = sqlx::query_as::<_, DownloadRecord>(
         "SELECT
             id,
             source_url,
@@ -2348,7 +2350,23 @@ async fn list_downloads_internal(pool: &SqlitePool) -> Result<Vec<DownloadRecord
          ORDER BY created_at DESC",
     )
     .fetch_all(pool)
-    .await
+    .await?;
+
+    for record in records.iter_mut() {
+        expand_download_record_path(record);
+    }
+
+    Ok(records)
+}
+
+fn expand_download_record_path(record: &mut DownloadRecord) {
+    if let Some(stored) = record.file_path.as_deref() {
+        let trimmed = stored.trim();
+        if !trimmed.is_empty() {
+            let absolute = crate::storage::expand_stored_path(trimmed);
+            record.file_path = Some(absolute.to_string_lossy().to_string());
+        }
+    }
 }
 
 async fn fetch_download_by_id(
@@ -2384,6 +2402,12 @@ async fn fetch_download_by_id(
     .bind(id)
     .fetch_optional(pool)
     .await
+    .map(|opt| {
+        opt.map(|mut record| {
+            expand_download_record_path(&mut record);
+            record
+        })
+    })
 }
 
 async fn download_exists(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
@@ -2412,15 +2436,9 @@ async fn resolve_target_path(
     Ok(downloads_dir.join(sanitize_file_name(&download.file_name)))
 }
 
-async fn resolve_downloads_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
-    let path = crate::storage::resolve_lexicon_data_dir(app_handle)
-        .map_err(|err| format!("failed to resolve lexicon data dir: {}", err))?;
-
-    fs::create_dir_all(&path)
-        .await
-        .map_err(|err| format!("failed to create downloads directory: {}", err))?;
-
-    Ok(path)
+async fn resolve_downloads_dir(_app_handle: &AppHandle) -> Result<PathBuf, String> {
+    crate::storage::resolve_downloads_dir()
+        .map_err(|err| format!("failed to resolve downloads directory: {}", err))
 }
 
 async fn ensure_parent_dir(path: &Path) -> Result<(), String> {

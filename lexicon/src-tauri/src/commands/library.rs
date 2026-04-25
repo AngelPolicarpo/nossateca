@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::Path;
 use std::{fs::File, io::Read};
 
@@ -7,6 +8,7 @@ use tauri::State;
 use crate::db::repositories::BookRepository;
 use crate::models::{Book, BOOK_STATUS_UNREAD};
 use crate::reader::EpubParser;
+use crate::storage;
 use crate::AppState;
 
 struct BookImportMetadata {
@@ -50,12 +52,29 @@ pub async fn add_book(file_path: String, state: State<'_, AppState>) -> Result<B
         return Err("Book already exists".to_string());
     }
 
+    let acervo_dir = storage::resolve_acervo_dir()
+        .map_err(|err| format!("failed to resolve acervo directory: {}", err))?;
+    let acervo_file_name = format!("{}.{}", file_hash, extension);
+    let destination = acervo_dir.join(&acervo_file_name);
+
+    if !destination.exists() {
+        fs::copy(&file_path, &destination).map_err(|err| {
+            format!(
+                "failed to copy book into acervo '{}': {}",
+                destination.display(),
+                err
+            )
+        })?;
+    }
+
+    let stored_path = format!("acervo/{}", acervo_file_name);
+
     let new_book = Book {
         id: 0,
         title: metadata.title,
         author: metadata.author,
         format: extension,
-        file_path,
+        file_path: stored_path,
         file_hash: Some(file_hash.clone()),
         status: BOOK_STATUS_UNREAD.to_string(),
         created_at: String::new(),
