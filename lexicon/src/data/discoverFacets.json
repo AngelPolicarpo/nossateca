@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "subjects": [
     {
       "slug": "arts",
@@ -924,36 +924,43 @@
   "languages": [
     {
       "slug": "chinese",
+      "iso_code": "chi",
       "label_pt": "Chinês",
       "aliases": []
     },
     {
       "slug": "english",
+      "iso_code": "eng",
       "label_pt": "Inglês",
       "aliases": []
     },
     {
       "slug": "french",
+      "iso_code": "fre",
       "label_pt": "Francês",
       "aliases": []
     },
     {
       "slug": "german",
+      "iso_code": "ger",
       "label_pt": "Alemão",
       "aliases": []
     },
     {
       "slug": "italian",
+      "iso_code": "ita",
       "label_pt": "Italiano",
       "aliases": []
     },
     {
       "slug": "japanese",
+      "iso_code": "jpn",
       "label_pt": "Japonês",
       "aliases": []
     },
     {
       "slug": "portugues",
+      "iso_code": "por",
       "label_pt": "Português",
       "aliases": [
         "portuguese"
@@ -961,11 +968,13 @@
     },
     {
       "slug": "russian",
+      "iso_code": "rus",
       "label_pt": "Russo",
       "aliases": []
     },
     {
       "slug": "spanish",
+      "iso_code": "spa",
       "label_pt": "Espanhol",
       "aliases": []
     }

@@ -19,6 +19,8 @@ import {
 } from "../hooks/useMangaSource";
 import {
   buildSubjectGroups,
+  getLanguageLabelPtByCode,
+  languageFacetRegistry,
   resolveSubjectSlug,
 } from "../data/discoverFacets";
 import { BookCover } from "./ui/BookCover";
@@ -338,6 +340,7 @@ export function DiscoverView({
   const [subjectSearchInput, setSubjectSearchInput] = useState("");
   const [yearFilterInput, setYearFilterInput] = useState("");
   const [debouncedYearFilterInput, setDebouncedYearFilterInput] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [skip, setSkip] = useState(0);
   const [selectedItem, setSelectedItem] = useState<DiscoverCatalogItem | null>(null);
   const [queueingUrl, setQueueingUrl] = useState<string | null>(null);
@@ -457,6 +460,19 @@ export function DiscoverView({
     [dropdownCatalogs],
   );
 
+  const languageSelectOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: "", label: "Todos os idiomas" },
+      ...languageFacetRegistry
+        .map((language) => ({
+          value: language.iso_code.toLowerCase(),
+          label: language.label_pt,
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label, "pt-BR")),
+    ],
+    [],
+  );
+
   useEffect(() => {
     if (catalogTypeFilter === "all") {
       return;
@@ -536,7 +552,18 @@ export function DiscoverView({
   useEffect(() => {
     setSkip(0);
     closePanel();
-  }, [debouncedGlobalSearchInput, debouncedYearFilterInput, closePanel]);
+  }, [debouncedGlobalSearchInput, debouncedYearFilterInput, selectedLanguage, closePanel]);
+
+  useEffect(() => {
+    if (!selectedCatalog) {
+      setSelectedLanguage(null);
+      return;
+    }
+
+    if (!selectedCatalog.supportedFilters.includes("language")) {
+      setSelectedLanguage(null);
+    }
+  }, [selectedCatalog]);
 
   const yearFilter = useMemo(() => {
     const parsed = Number.parseInt(debouncedYearFilterInput.trim(), 10);
@@ -571,6 +598,9 @@ export function DiscoverView({
 
   const primaryCatalogIsManga = primaryCatalog?.contentType === "manga";
 
+  const primaryCatalogSupportsLanguage =
+    primaryCatalog?.supportedFilters.includes("language") ?? false;
+
   const itemsQuery = useDiscoverCatalogItems(
     primaryCatalog?.pluginId ?? "",
     primaryCatalog?.id ?? "",
@@ -579,6 +609,7 @@ export function DiscoverView({
     !isSearching && primaryCatalog?.contentType === "subject" ? selectedGenre : null,
     isSearching ? null : yearFilter,
     isSearching ? debouncedGlobalSearchInput : null,
+    primaryCatalogSupportsLanguage ? selectedLanguage : null,
     Boolean(primaryCatalog),
   );
 
@@ -595,6 +626,7 @@ export function DiscoverView({
     null,
     null,
     debouncedGlobalSearchInput,
+    null,
     showMangaSection,
   );
 
@@ -665,6 +697,7 @@ export function DiscoverView({
     setYearFilterInput("");
     setDebouncedYearFilterInput("");
     setSubjectSearchInput("");
+    setSelectedLanguage(null);
     setSkip(0);
     closePanel();
   };
@@ -721,6 +754,12 @@ export function DiscoverView({
     }
   };
 
+  const supportsLanguageFilter =
+    selectedCatalog?.supportedFilters.includes("language") ?? false;
+  const showLanguageFilter =
+    supportsLanguageFilter &&
+    (!isSearching || (itemsQuery.isFetched && Boolean(itemsQuery.data)));
+
   const hasPrevious = skip > 0;
   const hasNext = itemsQuery.data?.hasMore ?? false;
   const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
@@ -730,6 +769,11 @@ export function DiscoverView({
     () => (selectedItem ? itemIdentityKey(selectedItem) : null),
     [selectedItem],
   );
+  const selectedLanguageLabel = useMemo(
+    () => (selectedLanguage ? getLanguageLabelPtByCode(selectedLanguage) : null),
+    [selectedLanguage],
+  );
+
   const activeFacetSummary = useMemo(() => {
     const chunks: string[] = [];
 
@@ -737,10 +781,15 @@ export function DiscoverView({
       chunks.push(`Ano: ${yearFilter}`);
     }
 
+    if (selectedLanguageLabel) {
+      chunks.push(`Idioma: ${selectedLanguageLabel}`);
+    }
+
     return chunks.join(" • ");
-  }, [yearFilter]);
+  }, [yearFilter, selectedLanguageLabel]);
   const hasRemoteFiltersApplied =
     yearFilter !== null ||
+    selectedLanguage !== null ||
     (selectedCatalog?.contentType === "subject" && selectedGenre !== null);
   const hasAnyFilterApplied =
     globalSearchInput.trim().length > 0 ||
@@ -1288,6 +1337,19 @@ export function DiscoverView({
                         value={subjectSearchInput}
                         onChange={(event) => setSubjectSearchInput(event.target.value)}
                         className="dc-facet-input"
+                      />
+                    </div>
+                  )}
+
+                  {showLanguageFilter && (
+                    <div className="dc-facet-field">
+                      <CustomSelect
+                        ariaLabel="Idioma"
+                        value={selectedLanguage ?? ""}
+                        options={languageSelectOptions}
+                        onValueChange={(value) =>
+                          setSelectedLanguage(value.length > 0 ? value : null)
+                        }
                       />
                     </div>
                   )}

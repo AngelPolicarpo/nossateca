@@ -104,7 +104,8 @@
 /* ─── Facets section ─────────────────────────────────────────────────────── */
 
 .dc-filters-secondary {
-  overflow: hidden;
+  position: relative;
+  overflow: visible;
   border: 1px solid var(--sx-color-border-subtle);
   border-radius: var(--radius-8);
   background: var(--sx-color-bg-surface);

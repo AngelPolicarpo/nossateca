@@ -431,6 +431,7 @@ impl PluginManager {
         genre: Option<String>,
         year: Option<u32>,
         search_query: Option<String>,
+        language: Option<String>,
     ) -> Result<DiscoverCatalogPageResponse, PluginTypedError> {
         let component = Component::from_file(engine, &plugin.path)
             .map_err(|err| unknown_error(format!("failed to load discover plugin: {}", err)))?;
@@ -461,6 +462,7 @@ impl PluginManager {
             genre,
             year,
             search_query,
+            language,
         };
 
         let response = exports

@@ -65,6 +65,7 @@ interface discover-types {
     genre: option<string>,
     year: option<u32>,
     search-query: option<string>,
+    language: option<string>,
   }
 
   record discover-catalog-page {

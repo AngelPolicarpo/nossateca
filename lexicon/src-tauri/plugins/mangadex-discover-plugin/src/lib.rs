@@ -47,6 +47,7 @@ impl Guest for MangadexDiscoverPlugin {
             genre: _,
             year,
             search_query,
+            language: _,
         } = request;
 
         let page_size = page_size.clamp(1, 100);

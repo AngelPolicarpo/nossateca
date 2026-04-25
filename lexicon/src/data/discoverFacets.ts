@@ -26,6 +26,7 @@ export type AudienceFacet = {
 
 export type LanguageFacet = {
   slug: string;
+  iso_code: string;
   label_pt: string;
   aliases: string[];
 };
@@ -56,6 +57,9 @@ const registry = facetRegistryJson as DiscoverFacetRegistry;
 const subjectBySlug = new Map(registry.subjects.map((subject) => [subject.slug, subject]));
 const formatBySlug = new Map(registry.formats.map((format) => [format.slug, format]));
 const languageBySlug = new Map(registry.languages.map((language) => [language.slug, language]));
+const languageByCode = new Map(
+  registry.languages.map((language) => [language.iso_code.toLowerCase(), language]),
+);
 
 const subjectAliasToSlug = new Map<string, string>();
 for (const subject of registry.subjects) {
@@ -204,6 +208,18 @@ export function getFormatLabelPt(slug: string): string {
 
 export function getLanguageLabelPt(slug: string): string {
   return languageBySlug.get(slug)?.label_pt ?? humanizeSlug(slug);
+}
+
+export function languageCodeBySlug(slug: string): string | null {
+  return languageBySlug.get(slug)?.iso_code.toLowerCase() ?? null;
+}
+
+export function languageSlugByCode(code: string): string | null {
+  return languageByCode.get(code.trim().toLowerCase())?.slug ?? null;
+}
+
+export function getLanguageLabelPtByCode(code: string): string | null {
+  return languageByCode.get(code.trim().toLowerCase())?.label_pt ?? null;
 }
 
 export function buildSubjectGroups(availableSlugs: string[], searchTerm: string): SubjectGroup[] {

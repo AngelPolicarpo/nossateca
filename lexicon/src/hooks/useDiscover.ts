@@ -96,12 +96,14 @@ export function useDiscoverCatalogItems(
   genre: string | null,
   year: number | null,
   searchQuery: string | null,
+  language: string | null,
   enabled = true,
 ) {
   const normalizedPluginId = pluginId.trim();
   const normalizedCatalogId = catalogId.trim();
   const normalizedGenre = genre?.trim() ?? "";
   const normalizedSearchQuery = searchQuery?.trim() ?? "";
+  const normalizedLanguage = language?.trim().toLowerCase() ?? "";
 
   return useQuery({
     queryKey: [
@@ -114,6 +116,7 @@ export function useDiscoverCatalogItems(
       normalizedGenre,
       year,
       normalizedSearchQuery,
+      normalizedLanguage,
     ],
     queryFn: () =>
       invoke<DiscoverCatalogPageResponse>("list_discover_catalog_items", {
@@ -124,6 +127,7 @@ export function useDiscoverCatalogItems(
         genre: normalizedGenre.length > 0 ? normalizedGenre : null,
         year,
         searchQuery: normalizedSearchQuery.length > 0 ? normalizedSearchQuery : null,
+        language: normalizedLanguage.length > 0 ? normalizedLanguage : null,
       }),
     staleTime: STALE_TIME_MS,
     retry: 1,

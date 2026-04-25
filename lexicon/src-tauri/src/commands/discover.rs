@@ -103,6 +103,7 @@ pub async fn list_discover_catalog_items(
     genre: Option<String>,
     year: Option<u32>,
     search_query: Option<String>,
+    language: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<DiscoverCatalogPageResponse, PluginTypedError> {
     let normalized_plugin_id = plugin_id.trim();
@@ -153,6 +154,9 @@ pub async fn list_discover_catalog_items(
     let search_query_owned = search_query
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
+    let language_owned = language
+        .map(|value| value.trim().to_lowercase())
+        .filter(|value| !value.is_empty());
 
     let worker = tokio::task::spawn_blocking(move || {
         PluginManager::execute_discover_list_catalog_items(
@@ -165,6 +169,7 @@ pub async fn list_discover_catalog_items(
             genre_owned,
             year,
             search_query_owned,
+            language_owned,
         )
     });
 
@@ -420,7 +425,7 @@ pub async fn search_source_downloads(
 }
 
 fn resolve_discover_timeout() -> Duration {
-    resolve_timeout_from_env("LEXICON_DISCOVER_PLUGIN_TIMEOUT_MS", 15_000)
+    resolve_timeout_from_env("LEXICON_DISCOVER_PLUGIN_TIMEOUT_MS", 60_000)
 }
 
 fn resolve_source_timeout() -> Duration {
