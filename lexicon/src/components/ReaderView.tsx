@@ -102,7 +102,7 @@ const READER_STORAGE_KEYS = {
   cbzMode: "reader.cbzMode",
 } as const;
 
-const READER_FONT_SIZE_DEFAULT = 20;
+const READER_FONT_SIZE_DEFAULT = 18;
 const READER_FONT_SIZE_MIN = 14;
 const READER_FONT_SIZE_MAX = 28;
 
@@ -110,9 +110,9 @@ const READER_LINE_HEIGHT_DEFAULT = 1.7;
 const READER_LINE_HEIGHT_MIN = 1.3;
 const READER_LINE_HEIGHT_MAX = 2.0;
 
-const READER_CONTENT_WIDTH_DEFAULT = 820;
+const READER_CONTENT_WIDTH_DEFAULT = 880;
 const READER_CONTENT_WIDTH_MIN = 520;
-const READER_CONTENT_WIDTH_MAX = 1100;
+const READER_CONTENT_WIDTH_MAX = 1800;
 
 type PdfJsWorkerGlobal = typeof globalThis & {
   pdfjsWorker?: {
@@ -127,7 +127,7 @@ function clampNumber(value: number, min: number, max: number): number {
 function getAdaptiveContentWidth(contentWidth: number, fontSize: number): number {
   const dynamicUpperBound = clampNumber(
     READER_CONTENT_WIDTH_MAX - (fontSize - READER_FONT_SIZE_DEFAULT) * 16,
-    540,
+    640,
     READER_CONTENT_WIDTH_MAX,
   );
   return Math.min(contentWidth, dynamicUpperBound);
@@ -203,6 +203,9 @@ const EPUB_SHADOW_BASELINE_CSS = `
   font-size: var(--reader-font-size);
   line-height: var(--reader-line-height);
   font-family: var(--font-primary);
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga";
+  -webkit-font-smoothing: antialiased;
 }
 
 :host *,
@@ -211,25 +214,34 @@ const EPUB_SHADOW_BASELINE_CSS = `
   box-sizing: border-box;
 }
 
-:host img,
-:host svg,
-:host video,
-:host iframe,
-:host canvas {
+:where(:host) img,
+:where(:host) svg,
+:where(:host) video,
+:where(:host) iframe,
+:where(:host) canvas {
   max-width: 100%;
+  height: auto;
 }
 
-:host ul,
-:host ol {
+:where(:host) figure { margin: 1em 0; }
+
+:where(:host) img,
+:where(:host) svg {
+  display: block;
+  margin: 0.8em auto;
+  object-fit: contain;
+}
+
+:where(:host) ul,
+:where(:host) ol {
   margin: 0.9em 0;
   padding-left: 1.4em;
 }
+:where(:host) ul { list-style: disc; }
+:where(:host) ol { list-style: decimal; }
+:where(:host) li + li { margin-top: 0.3em; }
 
-:host ul { list-style: disc; }
-:host ol { list-style: decimal; }
-:host li + li { margin-top: 0.35em; }
-
-:host table {
+:where(:host) table {
   width: 100%;
   display: block;
   overflow-x: auto;
@@ -237,73 +249,26 @@ const EPUB_SHADOW_BASELINE_CSS = `
   margin: 1em 0;
   border: 1px solid var(--reader-border-soft);
 }
-
-:host thead { background: var(--reader-surface-alt); }
-
-:host th,
-:host td {
+:where(:host) thead { background: var(--reader-surface-alt); }
+:where(:host) th,
+:where(:host) td {
   border: 1px solid var(--reader-border-soft);
   padding: 8px 10px;
   text-align: left;
   vertical-align: top;
-  min-width: 80px;
 }
 
-:host figure { margin: 1em 0; }
+:where(:host) a { color: var(--reader-accent); }
 
-:host img,
-:host svg {
-  display: block;
-  margin: 0.8em auto;
-  height: auto;
-  object-fit: contain;
+:where(:host) pre,
+:where(:host) code {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
 }
-
-:host p,
-:host li,
-:host span,
-:host h1,
-:host h2,
-:host h3,
-:host h4,
-:host h5,
-:host h6,
-:host a,
-:host blockquote {
-  color: inherit;
-}
-
-:host a { color: var(--reader-accent); }
-
-:host [style*="font-size"],
-:host [style*="line-height"],
-:host [style*="font-family"],
-:host [style*="letter-spacing"] {
-  font-size: inherit !important;
-  line-height: inherit !important;
-  font-family: inherit !important;
-  letter-spacing: inherit !important;
-}
-
-:host h1,
-:host h2,
-:host h3,
-:host h4,
-:host h5,
-:host h6 {
-  margin: 1.1em 0 0.6em;
-  line-height: 1.35;
-  letter-spacing: -0.125px;
-}
-
-:host p:first-of-type::first-letter {
-  font-size: 3.2em;
-  line-height: 1;
-  font-weight: 700;
-  float: left;
-  padding-right: 10px;
-  padding-top: 4px;
-  color: var(--reader-accent);
+:where(:host) pre {
+  overflow-x: auto;
+  padding: 0.75em 1em;
+  background: var(--reader-surface-alt);
+  border-radius: 6px;
 }
 
 :host .reader-highlight {
@@ -336,7 +301,7 @@ function cleanEpubInlineStyle(styleValue: string): string {
     .filter((d) => d.length > 0)
     .filter((d) => {
       const prop = d.split(":", 1)[0]?.trim().toLowerCase() ?? "";
-      return !/^font(?:-|$)/.test(prop) && prop !== "line-height" && prop !== "letter-spacing";
+      return prop !== "font-family" && prop !== "font";
     })
     .join("; ");
 }

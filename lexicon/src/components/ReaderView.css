@@ -22,9 +22,9 @@
   --font-primary: var(--sx-font-reading);
 
   /* Typography */
-  --reader-font-size: 20px;
+  --reader-font-size: 18px;
   --reader-line-height: 1.7;
-  --reader-content-width: 68ch;
+  --reader-content-width: 880px;
   --reader-pdf-width: 800px;
 }
 
