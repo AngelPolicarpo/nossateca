@@ -724,10 +724,10 @@ export function ReaderView({
       ({
         "--reader-font-size": `${fontSize}px`,
         "--reader-line-height": `${lineHeight}`,
-        "--reader-content-width": `${effectiveContentWidth}px`,
+        "--reader-content-width": `${isPdfBook ? effectivePdfWidth : effectiveContentWidth}px`,
         "--reader-pdf-width": `${effectivePdfWidth}px`,
       }) as CSSProperties,
-    [effectiveContentWidth, effectivePdfWidth, fontSize, lineHeight],
+    [effectiveContentWidth, effectivePdfWidth, fontSize, isPdfBook, lineHeight],
   );
 
   const getEpubContentRoot = useCallback((): ParentNode | null => {

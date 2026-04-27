@@ -406,6 +406,7 @@
 
 .reader-content-col {
   width: min(var(--reader-content-width), 100%);
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
