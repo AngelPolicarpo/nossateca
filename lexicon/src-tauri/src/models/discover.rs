@@ -69,6 +69,8 @@ pub struct DiscoverItemDetails {
     pub format: Option<String>,
     pub isbn: Option<String>,
     pub origin_url: Option<String>,
+    pub rating_average: Option<f64>,
+    pub rating_count: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

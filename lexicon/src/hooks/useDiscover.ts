@@ -57,6 +57,8 @@ export type DiscoverItemDetails = {
   format: string | null;
   isbn: string | null;
   originUrl: string | null;
+  ratingAverage: number | null;
+  ratingCount: number | null;
 };
 
 export type SourceDownloadResult = {

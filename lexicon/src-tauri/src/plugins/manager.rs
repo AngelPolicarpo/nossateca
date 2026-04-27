@@ -547,6 +547,8 @@ impl PluginManager {
                 format: details.format,
                 isbn: details.isbn,
                 origin_url: details.origin_url,
+                rating_average: details.rating_average,
+                rating_count: details.rating_count,
             }),
             Err(err) => Err(map_discover_plugin_error(err)),
         }

@@ -311,6 +311,8 @@ impl Guest for OpenLibraryDiscoverPlugin {
             })
             .or_else(|| Some(format!("{}/works/{}", OPEN_LIBRARY_BASE_URL, work_id)));
 
+        let (rating_average, rating_count) = fetch_work_ratings(&work_id);
+
         Ok(DiscoverItemDetails {
             id: item_id,
             title,
@@ -323,6 +325,8 @@ impl Guest for OpenLibraryDiscoverPlugin {
             format: None,
             isbn,
             origin_url,
+            rating_average,
+            rating_count,
         })
     }
 }
@@ -1162,6 +1166,30 @@ fn get_json(url: &str, query: Vec<(String, String)>) -> Result<Value, PluginErro
 
     serde_json::from_str::<Value>(&response.body)
         .map_err(|err| PluginError::ParsingFailure(format!("invalid json payload: {}", err)))
+}
+
+fn fetch_work_ratings(work_id: &str) -> (Option<f64>, Option<u32>) {
+    let url = format!("{}/works/{}/ratings.json", OPEN_LIBRARY_BASE_URL, work_id);
+    let payload = match get_json(&url, Vec::new()) {
+        Ok(value) => value,
+        Err(_) => return (None, None),
+    };
+
+    let summary = match payload.get("summary") {
+        Some(value) => value,
+        None => return (None, None),
+    };
+
+    let average = summary.get("average").and_then(Value::as_f64).filter(|value| value.is_finite());
+    let count = summary
+        .get("count")
+        .and_then(Value::as_u64)
+        .and_then(|value| u32::try_from(value).ok());
+
+    match (average, count) {
+        (Some(avg), Some(cnt)) if cnt > 0 => (Some(avg), Some(cnt)),
+        _ => (None, None),
+    }
 }
 
 fn parse_work_id(item_id: &str) -> Option<String> {

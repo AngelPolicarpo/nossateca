@@ -239,6 +239,11 @@
   height: 16px;
 }
 
+.dc-rating-star {
+  width: 14px;
+  height: 14px;
+}
+
 .dc-page-nav-btn {
   min-height: 32px;
   min-width: 32px;

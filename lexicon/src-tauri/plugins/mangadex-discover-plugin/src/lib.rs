@@ -143,6 +143,8 @@ impl Guest for MangadexDiscoverPlugin {
             format: Some("manga".to_string()),
             isbn: None,
             origin_url: Some(format!("https://mangadex.org/title/{}", manga_id)),
+            rating_average: None,
+            rating_count: None,
         })
     }
 }

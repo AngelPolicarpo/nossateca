@@ -85,6 +85,8 @@ interface discover-types {
     format: option<string>,
     isbn: option<string>,
     origin-url: option<string>,
+    rating-average: option<f64>,
+    rating-count: option<u32>,
   }
 }
 

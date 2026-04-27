@@ -280,6 +280,42 @@ function NextPageIcon() {
   );
 }
 
+const STAR_FULL_PATH =
+  "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z";
+const STAR_HALF_PATH =
+  "M12 18.338a2.1 2.1 0 0 0-.987.244L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16l2.309-4.679A.53.53 0 0 1 12 2";
+
+function StarIcon({ variant }: { variant: "full" | "half" | "empty" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill={variant === "full" ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="dc-icon-glyph dc-rating-star"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={STAR_FULL_PATH} />
+      {variant === "half" && (
+        <path d={STAR_HALF_PATH} fill="currentColor" stroke="currentColor" />
+      )}
+    </svg>
+  );
+}
+
+function getStarVariant(average: number, slot: number): "full" | "half" | "empty" {
+  const remaining = average - (slot - 1);
+  if (remaining >= 0.75) return "full";
+  if (remaining >= 0.25) return "half";
+  return "empty";
+}
+
 function PanelCloseIcon() {
   return (
     <svg
@@ -658,6 +694,10 @@ export function DiscoverView({
   const detailsIsbn = detailsQuery.data?.isbn ?? selectedItem?.isbn ?? null;
   const detailsYear = detailsQuery.data?.year ?? selectedItem?.year ?? null;
   const detailsPageCount = detailsQuery.data?.pageCount ?? selectedItem?.pageCount ?? null;
+  const detailsRatingAverage = detailsQuery.data?.ratingAverage ?? null;
+  const detailsRatingCount = detailsQuery.data?.ratingCount ?? null;
+  const hasRating =
+    detailsRatingAverage !== null && detailsRatingCount !== null && detailsRatingCount > 0;
 
   const sourceTitle = detailsTitle;
   const sourceAuthor = detailsAuthor.trim().length > 0 ? detailsAuthor : null;
@@ -884,18 +924,30 @@ export function DiscoverView({
                   {detailsTitle}
                 </h2>
                 <p className="dc-panel-author">{detailsAuthor}</p>
-                {(detailsYear !== null || detailsPageCount !== null || detailsIsbn) && (
-                  <div className="flex flex-wrap gap-[var(--space-6)] mt-[var(--space-6)]">
-                    {detailsYear !== null && (
-                      <span className="rounded-[var(--radius-pill)] bg-[var(--color-surface-alt)] px-[var(--space-8)] py-[var(--space-2)] text-[12px] font-medium text-[var(--color-text-secondary)]">
-                        {detailsYear}
+                {hasRating && (
+                  <div
+                    className="mt-[var(--space-6)] flex items-center gap-[var(--space-8)]"
+                    role="img"
+                    aria-label={`Avaliação média ${detailsRatingAverage!.toFixed(1)} de 5, ${detailsRatingCount} ${detailsRatingCount === 1 ? "avaliação" : "avaliações"}`}
+                  >
+                    <span
+                      className="flex items-center gap-[2px] text-[var(--color-primary)]"
+                      aria-hidden="true"
+                    >
+                      {[1, 2, 3, 4, 5].map((slot) => (
+                        <StarIcon
+                          key={slot}
+                          variant={getStarVariant(detailsRatingAverage!, slot)}
+                        />
+                      ))}
+                    </span>
+                    <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">
+                      {detailsRatingAverage!.toFixed(1)}
+                      <span className="ml-[var(--space-4)] font-normal text-[var(--color-text-muted)]">
+                        ({detailsRatingCount!.toLocaleString("pt-BR")}{" "}
+                        {detailsRatingCount === 1 ? "avaliação" : "avaliações"})
                       </span>
-                    )}
-                    {detailsPageCount !== null && (
-                      <span className="rounded-[var(--radius-pill)] bg-[var(--color-surface-alt)] px-[var(--space-8)] py-[var(--space-2)] text-[12px] font-medium text-[var(--color-text-secondary)]">
-                        {detailsPageCount} pág.
-                      </span>
-                    )}
+                    </span>
                   </div>
                 )}
               </div>
