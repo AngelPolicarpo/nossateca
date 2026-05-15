@@ -152,8 +152,6 @@ fn build_chapter_query(offset: u32) -> Vec<(String, String)> {
     query.push(("contentRating[]".to_string(), "erotica".to_string()));
     query.push(("contentRating[]".to_string(), "pornographic".to_string()));
 
-    query.push(("includeUnavailable".to_string(), "1".to_string()));
-
     for lang in PREFERRED_LANGUAGES {
         query.push(("translatedLanguage[]".to_string(), (*lang).to_string()));
     }
@@ -175,11 +173,20 @@ fn parse_chapter(entry: &Value) -> Option<MangaChapter> {
 
     let attributes = entry.get("attributes")?;
 
+    let has_external_url = attributes
+        .get("externalUrl")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .is_some_and(|value| !value.is_empty());
+    if has_external_url {
+        return None;
+    }
+
     let pages = attributes
         .get("pages")
         .and_then(Value::as_u64)
         .and_then(|value| u32::try_from(value).ok())
-        .filter(|value| *value > 0);
+        .filter(|value| *value > 0)?;
 
     let chapter = attributes
         .get("chapter")
@@ -219,7 +226,7 @@ fn parse_chapter(entry: &Value) -> Option<MangaChapter> {
         volume,
         title,
         language,
-        pages,
+        pages: Some(pages),
         published_at,
         scanlator,
     })

@@ -30,6 +30,12 @@ fn greet(name: &str) -> String {
 }
 
 fn resolve_bundled_plugins_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let dev_candidate = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("plugins/dist");
+
+    if cfg!(debug_assertions) && dev_candidate.exists() {
+        return Some(dev_candidate);
+    }
+
     if let Ok(resource_dir) = app.path().resource_dir() {
         let candidate = resource_dir.join("plugins").join("dist");
         if candidate.exists() {
@@ -37,7 +43,6 @@ fn resolve_bundled_plugins_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
         }
     }
 
-    let dev_candidate = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("plugins/dist");
     if dev_candidate.exists() {
         return Some(dev_candidate);
     }
