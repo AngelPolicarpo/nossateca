@@ -913,8 +913,8 @@ export function DiscoverView({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-[var(--space-16)]">
-          <div className="grid gap-[var(--space-16)]">
+        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-[var(--space-16)]">
+          <div className="grid min-w-0 gap-[var(--space-16)]">
             <div className="dc-panel-book-header">
               <div className="dc-panel-cover">
                 <DiscoverCover item={selectedItem} />
@@ -971,7 +971,7 @@ export function DiscoverView({
             )}
 
             {!detailsQuery.isLoading && !detailsQuery.isError && detailsQuery.data?.description && (
-              <p className="m-0 text-[14px] leading-[1.58] text-[var(--color-text-secondary)]">
+              <p className="m-0 min-w-0 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[14px] leading-[1.58] text-[var(--color-text-secondary)]">
                 {detailsQuery.data.description}
               </p>
             )}
