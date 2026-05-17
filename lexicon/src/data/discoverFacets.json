@@ -3,9 +3,9 @@
   "subjects": [
     {
       "slug": "arts",
-      "label_pt": "Arts",
+      "label_pt": "Artes",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": true,
       "aliases": [
         "art"
@@ -13,25 +13,25 @@
     },
     {
       "slug": "architecture",
-      "label_pt": "Architecture",
+      "label_pt": "Arquitetura",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "art__art_instruction",
-      "label_pt": "Art Instruction",
+      "label_pt": "Ensino de Arte",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "history_of_art__art__design_styles",
-      "label_pt": "Art History",
+      "label_pt": "História da Arte",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": [
         "art_history"
@@ -39,9 +39,9 @@
     },
     {
       "slug": "dance",
-      "label_pt": "Dance",
+      "label_pt": "Dança",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
@@ -49,55 +49,55 @@
       "slug": "design",
       "label_pt": "Design",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "fashion",
-      "label_pt": "Fashion",
+      "label_pt": "Moda",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "film",
-      "label_pt": "Film",
+      "label_pt": "Cinema",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "graphic_design",
-      "label_pt": "Graphic Design",
+      "label_pt": "Design Gráfico",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "music",
-      "label_pt": "Music",
+      "label_pt": "Música",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "music_theory",
-      "label_pt": "Music Theory",
+      "label_pt": "Teoria Musical",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "painting__paintings",
-      "label_pt": "Painting",
+      "label_pt": "Pintura",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": [
         "painting"
@@ -105,41 +105,41 @@
     },
     {
       "slug": "photography",
-      "label_pt": "Photography",
+      "label_pt": "Fotografia",
       "group_id": "arts",
-      "group_label_pt": "Arts",
+      "group_label_pt": "Artes",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "fiction",
-      "label_pt": "Fiction",
+      "label_pt": "Ficção",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": true,
       "aliases": []
     },
     {
       "slug": "fantasy",
-      "label_pt": "Fantasy",
+      "label_pt": "Fantasia",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "historical_fiction",
-      "label_pt": "Historical Fiction",
+      "label_pt": "Ficção Histórica",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "horror",
-      "label_pt": "Horror",
+      "label_pt": "Terror",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
@@ -147,47 +147,47 @@
       "slug": "humor",
       "label_pt": "Humor",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "literature",
-      "label_pt": "Literature",
+      "label_pt": "Literatura",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "magic",
-      "label_pt": "Magic",
+      "label_pt": "Magia",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "mystery_and_detective_stories",
-      "label_pt": "Mystery and detective stories",
+      "label_pt": "Mistério e Histórias de Detetive",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "plays",
-      "label_pt": "Plays",
+      "label_pt": "Peças Teatrais",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "poetry",
-      "label_pt": "Poetry",
+      "label_pt": "Poesia",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
@@ -195,39 +195,39 @@
       "slug": "romance",
       "label_pt": "Romance",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "science_fiction",
-      "label_pt": "Science Fiction",
+      "label_pt": "Ficção Científica",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "short_stories",
-      "label_pt": "Short Stories",
+      "label_pt": "Contos",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "thriller",
-      "label_pt": "Thriller",
+      "label_pt": "Suspense",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "young_adult_fiction",
-      "label_pt": "Young Adult",
+      "label_pt": "Jovem Adulto",
       "group_id": "fiction",
-      "group_label_pt": "Fiction",
+      "group_label_pt": "Ficção",
       "is_category": false,
       "aliases": [
         "young_adult"
@@ -235,9 +235,9 @@
     },
     {
       "slug": "sciencemathematics",
-      "label_pt": "Science & Mathematics",
+      "label_pt": "Ciência e Matemática",
       "group_id": "science_mathematics",
-      "group_label_pt": "Science & Mathematics",
+      "group_label_pt": "Ciência e Matemática",
       "is_category": true,
       "aliases": [
         "science_and_mathematics"
@@ -245,73 +245,73 @@
     },
     {
       "slug": "biology",
-      "label_pt": "Biology",
+      "label_pt": "Biologia",
       "group_id": "science_mathematics",
-      "group_label_pt": "Science & Mathematics",
+      "group_label_pt": "Ciência e Matemática",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "chemistry",
-      "label_pt": "Chemistry",
+      "label_pt": "Química",
       "group_id": "science_mathematics",
-      "group_label_pt": "Science & Mathematics",
+      "group_label_pt": "Ciência e Matemática",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "mathematics",
-      "label_pt": "Mathematics",
+      "label_pt": "Matemática",
       "group_id": "science_mathematics",
-      "group_label_pt": "Science & Mathematics",
+      "group_label_pt": "Ciência e Matemática",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "physics",
-      "label_pt": "Physics",
+      "label_pt": "Física",
       "group_id": "science_mathematics",
-      "group_label_pt": "Science & Mathematics",
+      "group_label_pt": "Ciência e Matemática",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "programming",
-      "label_pt": "Programming",
+      "label_pt": "Programação",
       "group_id": "science_mathematics",
-      "group_label_pt": "Science & Mathematics",
+      "group_label_pt": "Ciência e Matemática",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "business",
-      "label_pt": "Business & Finance",
+      "label_pt": "Negócios e Finanças",
       "group_id": "business_finance",
-      "group_label_pt": "Business & Finance",
+      "group_label_pt": "Negócios e Finanças",
       "is_category": true,
       "aliases": []
     },
     {
       "slug": "management",
-      "label_pt": "Management",
+      "label_pt": "Gestão",
       "group_id": "business_finance",
-      "group_label_pt": "Business & Finance",
+      "group_label_pt": "Negócios e Finanças",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "entrepreneurship",
-      "label_pt": "Entrepreneurship",
+      "label_pt": "Empreendedorismo",
       "group_id": "business_finance",
-      "group_label_pt": "Business & Finance",
+      "group_label_pt": "Negócios e Finanças",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "business__economics",
-      "label_pt": "Business Economics",
+      "label_pt": "Economia Empresarial",
       "group_id": "business_finance",
-      "group_label_pt": "Business & Finance",
+      "group_label_pt": "Negócios e Finanças",
       "is_category": false,
       "aliases": [
         "business_economics"
@@ -319,25 +319,25 @@
     },
     {
       "slug": "success_in_business",
-      "label_pt": "Business Success",
+      "label_pt": "Sucesso nos Negócios",
       "group_id": "business_finance",
-      "group_label_pt": "Business & Finance",
+      "group_label_pt": "Negócios e Finanças",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "finance",
-      "label_pt": "Finance",
+      "label_pt": "Finanças",
       "group_id": "business_finance",
-      "group_label_pt": "Business & Finance",
+      "group_label_pt": "Negócios e Finanças",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "juvenile_fiction",
-      "label_pt": "Children's",
+      "label_pt": "Infantil",
       "group_id": "childrens",
-      "group_label_pt": "Children's",
+      "group_label_pt": "Infantil",
       "is_category": true,
       "aliases": [
         "children"
@@ -345,9 +345,9 @@
     },
     {
       "slug": "juvenile_literature",
-      "label_pt": "Kids Books",
+      "label_pt": "Livros Infantis",
       "group_id": "childrens",
-      "group_label_pt": "Children's",
+      "group_label_pt": "Infantil",
       "is_category": false,
       "aliases": [
         "kids_books"
@@ -355,17 +355,17 @@
     },
     {
       "slug": "stories_in_rhyme",
-      "label_pt": "Stories in Rhyme",
+      "label_pt": "Histórias em Rima",
       "group_id": "childrens",
-      "group_label_pt": "Children's",
+      "group_label_pt": "Infantil",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "infancy",
-      "label_pt": "Baby Books",
+      "label_pt": "Livros para Bebês",
       "group_id": "childrens",
-      "group_label_pt": "Children's",
+      "group_label_pt": "Infantil",
       "is_category": false,
       "aliases": [
         "baby_books"
@@ -373,9 +373,9 @@
     },
     {
       "slug": "bedtime",
-      "label_pt": "Bedtime Books",
+      "label_pt": "Livros para Dormir",
       "group_id": "childrens",
-      "group_label_pt": "Children's",
+      "group_label_pt": "Infantil",
       "is_category": false,
       "aliases": [
         "bedtime_books"
@@ -383,65 +383,65 @@
     },
     {
       "slug": "picture_books",
-      "label_pt": "Picture Books",
+      "label_pt": "Livros Ilustrados",
       "group_id": "childrens",
-      "group_label_pt": "Children's",
+      "group_label_pt": "Infantil",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "history",
-      "label_pt": "History",
+      "label_pt": "História",
       "group_id": "history",
-      "group_label_pt": "History",
+      "group_label_pt": "História",
       "is_category": true,
       "aliases": []
     },
     {
       "slug": "ancient_civilization",
-      "label_pt": "Ancient Civilization",
+      "label_pt": "Civilizações Antigas",
       "group_id": "history",
-      "group_label_pt": "History",
+      "group_label_pt": "História",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "archaeology",
-      "label_pt": "Archaeology",
+      "label_pt": "Arqueologia",
       "group_id": "history",
-      "group_label_pt": "History",
+      "group_label_pt": "História",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "anthropology",
-      "label_pt": "Anthropology",
+      "label_pt": "Antropologia",
       "group_id": "history",
-      "group_label_pt": "History",
+      "group_label_pt": "História",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "world_war_ii",
-      "label_pt": "World War II",
+      "label_pt": "Segunda Guerra Mundial",
       "group_id": "history",
-      "group_label_pt": "History",
+      "group_label_pt": "História",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "social_life_and_customs",
-      "label_pt": "Social Life and Customs",
+      "label_pt": "Vida Social e Costumes",
       "group_id": "history",
-      "group_label_pt": "History",
+      "group_label_pt": "História",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "health_wellness",
-      "label_pt": "Health & Wellness",
+      "label_pt": "Saúde e Bem-estar",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": true,
       "aliases": [
         "health"
@@ -449,49 +449,49 @@
     },
     {
       "slug": "cooking",
-      "label_pt": "Cooking",
+      "label_pt": "Culinária",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "cookbooks",
-      "label_pt": "Cookbooks",
+      "label_pt": "Livros de Receitas",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "mental_health",
-      "label_pt": "Mental Health",
+      "label_pt": "Saúde Mental",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "exercise",
-      "label_pt": "Exercise",
+      "label_pt": "Exercícios",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "nutrition",
-      "label_pt": "Nutrition",
+      "label_pt": "Nutrição",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "self_help",
-      "label_pt": "Self-help",
+      "label_pt": "Autoajuda",
       "group_id": "health_wellness",
-      "group_label_pt": "Health & Wellness",
+      "group_label_pt": "Saúde e Bem-estar",
       "is_category": false,
       "aliases": [
         "self-help"
@@ -499,73 +499,73 @@
     },
     {
       "slug": "biography",
-      "label_pt": "Biography",
+      "label_pt": "Biografia",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": true,
       "aliases": []
     },
     {
       "slug": "autobiography",
-      "label_pt": "Autobiographies",
+      "label_pt": "Autobiografias",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "history",
-      "label_pt": "History",
+      "label_pt": "História",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "politics_and_government",
-      "label_pt": "Politics and Government",
+      "label_pt": "Política e Governo",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "women",
-      "label_pt": "Women",
+      "label_pt": "Mulheres",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "kings_and_rulers",
-      "label_pt": "Kings and Rulers",
+      "label_pt": "Reis e Governantes",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "composers",
-      "label_pt": "Composers",
+      "label_pt": "Compositores",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "artists",
-      "label_pt": "Artists",
+      "label_pt": "Artistas",
       "group_id": "biography",
-      "group_label_pt": "Biography",
+      "group_label_pt": "Biografia",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "social_science",
-      "label_pt": "Social Science",
+      "label_pt": "Ciências Sociais",
       "group_id": "social_science",
-      "group_label_pt": "Social Science",
+      "group_label_pt": "Ciências Sociais",
       "is_category": true,
       "aliases": [
         "social_sciences"
@@ -573,97 +573,97 @@
     },
     {
       "slug": "anthropology",
-      "label_pt": "Anthropology",
+      "label_pt": "Antropologia",
       "group_id": "social_science",
-      "group_label_pt": "Social Science",
+      "group_label_pt": "Ciências Sociais",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "religion",
-      "label_pt": "Religion",
+      "label_pt": "Religião",
       "group_id": "social_science",
-      "group_label_pt": "Social Science",
+      "group_label_pt": "Ciências Sociais",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "political_science",
-      "label_pt": "Political Science",
+      "label_pt": "Ciência Política",
       "group_id": "social_science",
-      "group_label_pt": "Social Science",
+      "group_label_pt": "Ciências Sociais",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "psychology",
-      "label_pt": "Psychology",
+      "label_pt": "Psicologia",
       "group_id": "social_science",
-      "group_label_pt": "Social Science",
+      "group_label_pt": "Ciências Sociais",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "textbooks",
-      "label_pt": "Textbooks",
+      "label_pt": "Livros Didáticos",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": true,
       "aliases": []
     },
     {
       "slug": "history",
-      "label_pt": "History",
+      "label_pt": "História",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "mathematics",
-      "label_pt": "Mathematics",
+      "label_pt": "Matemática",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "geography",
-      "label_pt": "Geography",
+      "label_pt": "Geografia",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "psychology",
-      "label_pt": "Psychology",
+      "label_pt": "Psicologia",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "algebra",
-      "label_pt": "Algebra",
+      "label_pt": "Álgebra",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "education",
-      "label_pt": "Education",
+      "label_pt": "Educação",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "business__economics",
-      "label_pt": "Business & Economics",
+      "label_pt": "Negócios e Economia",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": [
         "business_economics"
@@ -671,41 +671,41 @@
     },
     {
       "slug": "science",
-      "label_pt": "Science",
+      "label_pt": "Ciência",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "chemistry",
-      "label_pt": "Chemistry",
+      "label_pt": "Química",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "english_language",
-      "label_pt": "English Language",
+      "label_pt": "Língua Inglesa",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "physics",
-      "label_pt": "Physics",
+      "label_pt": "Física",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     },
     {
       "slug": "computer_science",
-      "label_pt": "Computer Science",
+      "label_pt": "Ciência da Computação",
       "group_id": "textbooks",
-      "group_label_pt": "Textbooks",
+      "group_label_pt": "Livros Didáticos",
       "is_category": false,
       "aliases": []
     }
