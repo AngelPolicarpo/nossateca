@@ -67,7 +67,7 @@ type SidebarIconName =
   | "compass"
   | "library"
   | "download"
-  | "puzzle"
+  | "flask"
   | "settings"
   | "sun"
   | "moon";
@@ -83,7 +83,7 @@ const SIDEBAR_BASE_ITEMS: SidebarNavItem[] = [
   { key: "discover", label: "Descobrir", icon: "compass" },
   { key: "library", label: "Biblioteca", icon: "library" },
   { key: "downloads", label: "Downloads", icon: "download" },
-  { key: "addons", label: "Addons", icon: "puzzle" },
+  { key: "addons", label: "Addons", icon: "flask" },
   { key: "settings", label: "Configurações", icon: "settings" },
 ];
 
@@ -144,10 +144,13 @@ function SidebarIcon({
           <path d="m7 10 5 5 5-5" />
         </svg>
       );
-    case "puzzle":
+    case "flask":
       return (
         <svg {...iconProps}>
-          <path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" />
+          <path d="M12 22v-5" />
+          <path d="M15 8V2" />
+          <path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" />
+          <path d="M9 8V2" />
         </svg>
       );
     case "settings":
@@ -224,13 +227,15 @@ function TorrentSourceIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >
-      <path d="M5 5v8a7 7 0 0 0 14 0V5M5 5h4v8a3 3 0 1 0 6 0V5h4" />
+      <path d="m12 15 4 4" />
+      <path d="M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z" />
+      <path d="m5 8 4 4" />
     </svg>
   );
 }
@@ -243,14 +248,15 @@ function HttpSourceIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >
-      <path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
-      <path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+      <path d="M2 12h20" />
     </svg>
   );
 }
@@ -320,16 +326,39 @@ function DownloadAddToLibraryIcon() {
       xmlns="http://www.w3.org/2000/svg"
       width="16"
       height="16"
-      fill="currentColor"
-      viewBox="0 0 16 16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >
-      <path
-        fillRule="evenodd"
-        d="M8 4a.5.5 0 0 1 .5.5V6h1.5a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z"
-      />
-      <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z" />
+      <path d="M12 7v6" />
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
+      <path d="M9 10h6" />
+    </svg>
+  );
+}
+
+function DownloadRemoveFromListIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
     </svg>
   );
 }
@@ -349,11 +378,11 @@ function DownloadRemoveIcon() {
       aria-hidden="true"
       focusable="false"
     >
-      <path d="M3 6h18" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M3 6h18" />
       <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <line x1="10" y1="11" x2="10" y2="17" />
-      <line x1="14" y1="11" x2="14" y2="17" />
     </svg>
   );
 }
@@ -729,35 +758,6 @@ function App() {
     setDownloadSearchInput("");
   };
 
-  const handleRemoveDownloadAction = useCallback(
-    async (item: DownloadItem) => {
-      const decision = window.prompt(
-        item.filePath
-          ? "Digite 1 para remover da lista, 2 para remover e excluir arquivo, ou deixe vazio para cancelar."
-          : "Digite 1 para remover da lista, ou deixe vazio para cancelar.",
-        "1",
-      );
-
-      if (decision === null) {
-        return;
-      }
-
-      const normalizedDecision = decision.trim();
-      if (normalizedDecision !== "1" && normalizedDecision !== "2") {
-        return;
-      }
-
-      if (normalizedDecision === "2" && !item.filePath) {
-        alert("Nao ha arquivo local para excluir neste download.");
-        return;
-      }
-
-      const shouldDeleteFile = normalizedDecision === "2" && Boolean(item.filePath);
-      await removeDownload(item.id, shouldDeleteFile);
-    },
-    [removeDownload],
-  );
-
   if (selectedBookId) {
     return (
       <ReaderView
@@ -1107,16 +1107,29 @@ function App() {
                             )}
 
                             {canRemoveEntry && (
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                className="lx-download-icon-btn"
-                                onClick={() => void handleRemoveDownloadAction(item)}
-                                aria-label="Remover download"
-                                title="Remover download"
-                              >
-                                <DownloadRemoveIcon />
-                              </Button>
+                              <>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="lx-download-icon-btn"
+                                  onClick={() => void removeDownload(item.id, false)}
+                                  aria-label="Remover da lista"
+                                  title="Remover da lista"
+                                >
+                                  <DownloadRemoveFromListIcon />
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  className="lx-download-icon-btn"
+                                  onClick={() => void removeDownload(item.id, true)}
+                                  disabled={!item.filePath}
+                                  aria-label="Excluir arquivo"
+                                  title={item.filePath ? "Excluir arquivo" : "Nenhum arquivo local para excluir"}
+                                >
+                                  <DownloadRemoveIcon />
+                                </Button>
+                              </>
                             )}
                           </div>
                         </article>

@@ -62,15 +62,8 @@ impl Guest for OpenLibraryDiscoverPlugin {
 
         Ok(vec![
             DiscoverCatalog {
-                id: "openlibrary:trending:daily".to_string(),
-                name: "Livros em Alta Hoje".to_string(),
-                content_type: "trending".to_string(),
-                genres: Vec::new(),
-                supported_filters: vec!["year".to_string(), "language".to_string()],
-            },
-            DiscoverCatalog {
-                id: "openlibrary:trending:weekly".to_string(),
-                name: "Livros em Alta da Semana".to_string(),
+                id: "openlibrary:trending".to_string(),
+                name: "Livros em Alta".to_string(),
                 content_type: "trending".to_string(),
                 genres: Vec::new(),
                 supported_filters: vec!["year".to_string(), "language".to_string()],
@@ -138,11 +131,8 @@ impl Guest for OpenLibraryDiscoverPlugin {
         }
 
         match catalog_id.as_str() {
-            "openlibrary:trending:daily" => {
-                list_trending("daily", skip, page_size, year, language_code_ref)
-            }
-            "openlibrary:trending:weekly" => {
-                list_trending("weekly", skip, page_size, year, language_code_ref)
+            "openlibrary:trending" => {
+                list_trending(skip, page_size, year, language_code_ref)
             }
             "openlibrary:subjects" => {
                 list_subjects(genre, skip, page_size, year, language_code_ref)
@@ -332,24 +322,29 @@ impl Guest for OpenLibraryDiscoverPlugin {
 }
 
 fn list_trending(
-    period: &str,
     skip: u32,
     page_size: u32,
     year_filter: Option<u32>,
     language_filter: Option<&str>,
 ) -> Result<DiscoverCatalogPage, PluginError> {
-    let url = format!("{}/trending/{}.json", OPEN_LIBRARY_BASE_URL, period);
-    let payload = get_json(&url, Vec::new())?;
+    let payload = get_json(
+        &format!("{}/search.json", OPEN_LIBRARY_BASE_URL),
+        vec![
+            ("q".to_string(), "has_fulltext:true".to_string()),
+            ("sort".to_string(), "trending".to_string()),
+            ("fields".to_string(), SEARCH_FIELDS.to_string()),
+            ("limit".to_string(), page_size.to_string()),
+            ("offset".to_string(), skip.to_string()),
+        ],
+    )?;
 
-    let works = payload
-        .get("works")
+    let docs = payload
+        .get("docs")
         .and_then(Value::as_array)
-        .ok_or_else(|| PluginError::ParsingFailure("missing works array".to_string()))?;
+        .ok_or_else(|| PluginError::ParsingFailure("missing docs array".to_string()))?;
 
-    let total_len = works.len();
-    let mut items = works
+    let mut items = docs
         .iter()
-        .skip(skip as usize)
         .filter_map(|raw| {
             let parsed = parse_item(raw);
             apply_language_filter(raw, parsed, language_filter)
@@ -360,11 +355,12 @@ fn list_trending(
         items.retain(|item| item.year == Some(year));
     }
 
-    if items.len() > page_size as usize {
-        items.truncate(page_size as usize);
-    }
+    let total_found = payload
+        .get("numFound")
+        .and_then(Value::as_u64)
+        .unwrap_or(skip as u64 + docs.len() as u64);
 
-    let has_more = (skip as usize + page_size as usize) < total_len;
+    let has_more = (skip as u64 + docs.len() as u64) < total_found;
 
     Ok(DiscoverCatalogPage { items, has_more })
 }

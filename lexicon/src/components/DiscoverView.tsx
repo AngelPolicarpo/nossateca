@@ -406,7 +406,7 @@ export function DiscoverView({
       }
 
       const preferred =
-        catalogs.find((catalog) => catalog.id === "openlibrary:trending:daily") ?? catalogs[0];
+        catalogs.find((catalog) => catalog.id === "openlibrary:trending") ?? catalogs[0];
 
       return catalogKey(preferred);
     });
