@@ -55,10 +55,10 @@ const ADDON_ROLE_META: Record<AddonRole, AddonRoleMeta> = {
 };
 
 const FALLBACK_ROLE_META: AddonRoleMeta = {
-  label: "addon",
+  label: "plugin",
   letter: "?",
   toneClass: "legacy",
-  description: "Tipo de addon desconhecido.",
+  description: "Tipo de plugin desconhecido.",
 };
 
 function resolveRoleMeta(role: AddonRole | string): AddonRoleMeta {
@@ -413,7 +413,7 @@ export function AddonsView() {
     <section className="lx-addons-shell">
       <header className="lx-page-header">
         <div className="lx-page-header-titles">
-          <h1 className="lx-page-title">Addons</h1>
+          <h1 className="lx-page-title">Plugins</h1>
           <p className="lx-page-subtitle">{activeAddonsCount} ativos</p>
         </div>
 
@@ -437,12 +437,12 @@ export function AddonsView() {
 
       {error && <StateMessage tone="error">{error}</StateMessage>}
 
-      {loading && <StateMessage>Carregando addons...</StateMessage>}
+      {loading && <StateMessage>Carregando plugins...</StateMessage>}
 
       {!loading && addons.length === 0 && (
         <EmptyState
-          title="Nenhum addon instalado"
-          description="Use o botão Instalar Addon para selecionar um arquivo .wasm manualmente."
+          title="Nenhum plugin instalado"
+          description="Use o botão Instalar Plugin para selecionar um arquivo .wasm manualmente."
           className="justify-items-start text-left"
           action={
             <Button
@@ -519,7 +519,7 @@ export function AddonsView() {
               <span className="lx-addon-install-card-icon" aria-hidden="true">
                 +
               </span>
-              <strong>{installing ? "Instalando..." : "Instalar novo addon"}</strong>
+              <strong>{installing ? "Instalando..." : "Instalar novo plugin"}</strong>
               <span>Selecione um arquivo .wasm</span>
             </button>
           </div>

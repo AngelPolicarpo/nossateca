@@ -83,7 +83,7 @@ const SIDEBAR_BASE_ITEMS: SidebarNavItem[] = [
   { key: "discover", label: "Descobrir", icon: "compass" },
   { key: "library", label: "Biblioteca", icon: "library" },
   { key: "downloads", label: "Downloads", icon: "download" },
-  { key: "addons", label: "Addons", icon: "flask" },
+  { key: "addons", label: "Plugins", icon: "flask" },
   { key: "settings", label: "Configurações", icon: "settings" },
 ];
 

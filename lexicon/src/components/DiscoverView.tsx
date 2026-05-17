@@ -1516,7 +1516,7 @@ export function DiscoverView({
               compact
               titleAs="h3"
               title="Nenhuma coleção disponível"
-              description="Ative novas integrações na aba Addons para ampliar as opções de descoberta."
+              description="Ative novas integrações na aba Plugins para ampliar as opções de descoberta."
             />
           )}
 
