@@ -29,33 +29,33 @@ type AddonRoleMeta = {
 
 const ADDON_ROLE_META: Record<AddonRole, AddonRoleMeta> = {
   discover: {
-    label: "discover",
-    letter: "D",
+    label: "Catálogo",
+    letter: "C",
     toneClass: "discover",
-    description: "Catálogos editoriais e discovery de obras no feed principal.",
+    description: "Encontra e exibe obras disponíveis em catálogos online.",
   },
   source: {
-    label: "source",
-    letter: "S",
+    label: "Fonte",
+    letter: "F",
     toneClass: "source",
-    description: "Resolução de fontes e links de download para a camada Discover.",
+    description: "Fornece os arquivos para download das obras encontradas.",
   },
   manga_source: {
-    label: "manga",
-    letter: "M",
-    toneClass: "manga",
-    description: "Fontes de mangá: lista capítulos e fornece páginas para download em CBZ.",
+    label: "Fonte",
+    letter: "F",
+    toneClass: "source",
+    description: "Fornece os arquivos para download das obras encontradas.",
   },
   legacy_search: {
-    label: "legacy",
+    label: "Legado",
     letter: "L",
     toneClass: "legacy",
-    description: "Compatibilidade com busca legada e rotinas de fallback.",
+    description: "Compatibilidade com integrações antigas.",
   },
 };
 
 const FALLBACK_ROLE_META: AddonRoleMeta = {
-  label: "plugin",
+  label: "Plugin",
   letter: "?",
   toneClass: "legacy",
   description: "Tipo de plugin desconhecido.",
@@ -83,21 +83,15 @@ function removeExtension(fileName: string): string {
 }
 
 function getAddonName(addon: AddonDescriptor): string {
-  const normalizedName = removeExtension(addon.fileName);
+  const normalizedName = removeExtension(addon.fileName).replace(
+    /[-_](source|discover)$/i,
+    "",
+  );
   if (normalizedName.trim().length > 0) {
     return toStartCase(normalizedName);
   }
 
   return toStartCase(addon.id);
-}
-
-function getSourceId(addonId: string): string {
-  const chunks = addonId.split(/[-_]/).filter(Boolean);
-  if (chunks.length === 0) {
-    return addonId;
-  }
-
-  return chunks[0];
 }
 
 function normalizeSettingKey(key: string): string {
@@ -338,7 +332,7 @@ export function AddonsView() {
 
   const handleRemoveAddon = async (addon: AddonDescriptor) => {
     const shouldRemove = window.confirm(
-      `Remover o addon '${addon.id}'? Esta ação também remove as configurações salvas.`,
+      `Remover o plugin '${getAddonName(addon)}'? Esta ação também remove as configurações salvas.`,
     );
 
     if (!shouldRemove) {
@@ -476,30 +470,19 @@ export function AddonsView() {
 
                     <div className="lx-addon-head-content">
                       <div className="lx-addon-name">{getAddonName(addon)}</div>
-                      <div className="lx-addon-id">{addon.id}</div>
                     </div>
 
                     <span className={cn("lx-addon-role-pill", roleMeta.toneClass)}>{roleMeta.label}</span>
                   </div>
-
-                  <p className="lx-addon-desc">{roleMeta.description}</p>
 
                   <div className="lx-addon-stats">
                     <div className="lx-addon-stat">
                       <strong>{addon.settings.length}</strong> chaves
                     </div>
 
-                    {addon.role === "source" && (
-                      <div className="lx-addon-stat">
-                        source_id: <strong>{getSourceId(addon.id)}</strong>
-                      </div>
-                    )}
-
-                    {addon.role !== "source" && (
-                      <div className="lx-addon-stat" title={addon.fileName}>
-                        <strong>{addon.fileName}</strong>
-                      </div>
-                    )}
+                    <div className="lx-addon-stat" title={addon.fileName}>
+                      <strong>{addon.fileName}</strong>
+                    </div>
 
                     <div className="lx-addon-status">
                       <span className={cn("lx-addon-status-dot", isEnabled && "active")} />
@@ -542,7 +525,6 @@ export function AddonsView() {
 
                   <div className="lx-addon-detail-title-wrap">
                     <h2 className="lx-addon-detail-title">{getAddonName(selectedAddon)}</h2>
-                    <p className="lx-addon-id">{selectedAddon.id}</p>
 
                     <div className="lx-addon-detail-pills">
                       <span className={cn("lx-addon-role-pill", selectedAddonRoleMeta.toneClass)}>
@@ -556,11 +538,11 @@ export function AddonsView() {
 
                 <div className="lx-addon-toggle-row">
                   <div>
-                    <p className="lx-addon-toggle-title">Habilitar addon</p>
+                    <p className="lx-addon-toggle-title">Habilitar plugin</p>
                     <p className="lx-addon-toggle-subtitle">
                       {selectedAddonEnabled
-                        ? "Carregado no runtime local"
-                        : "Ignorado no runtime local enquanto desativado"}
+                        ? "Atualmente ativado."
+                        : "Atualmente desativado."}
                     </p>
                   </div>
 
@@ -584,7 +566,7 @@ export function AddonsView() {
 
                 {!settingsLoading && settingsDraft.length === 0 && (
                   <StateMessage>
-                    Este addon ainda não possui chaves configuradas. Clique em Nova chave para
+                    Este plugin ainda não possui chaves configuradas. Clique em Nova chave para
                     adicionar a primeira configuração.
                   </StateMessage>
                 )}
@@ -666,10 +648,10 @@ export function AddonsView() {
                     onClick={() => void handleSaveSettings()}
                     disabled={savingSettings}
                     aria-label={
-                      savingSettings ? "Salvando configurações do addon" : "Salvar configurações do addon"
+                      savingSettings ? "Salvando configurações do plugin" : "Salvar configurações do plugin"
                     }
                     title={
-                      savingSettings ? "Salvando configurações do addon" : "Salvar configurações do addon"
+                      savingSettings ? "Salvando configurações do plugin" : "Salvar configurações do plugin"
                     }
                   >
                     <AddonFileActionIcon />
@@ -682,13 +664,13 @@ export function AddonsView() {
                     disabled={removingAddonId === selectedAddon.id}
                     aria-label={
                       removingAddonId === selectedAddon.id
-                        ? "Removendo addon"
-                        : "Remover addon"
+                        ? "Removendo plugin"
+                        : "Remover plugin"
                     }
                     title={
                       removingAddonId === selectedAddon.id
-                        ? "Removendo addon"
-                        : "Remover addon"
+                        ? "Removendo plugin"
+                        : "Remover plugin"
                     }
                   >
                     <AddonTrashIcon />

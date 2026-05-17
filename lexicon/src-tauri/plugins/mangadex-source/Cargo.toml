@@ -1,5 +1,5 @@
 [package]
-name = "mangadex-source-plugin"
+name = "mangadex-source"
 version = "0.1.0"
 edition = "2021"
 

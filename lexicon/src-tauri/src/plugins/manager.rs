@@ -881,11 +881,11 @@ fn resolve_plugin_role(id: &str, settings: &[AddonSettingEntry]) -> AddonRole {
 fn infer_role_from_id(id: &str) -> AddonRole {
     let normalized = id.to_ascii_lowercase();
 
-    if normalized.contains("discover-plugin") {
+    if normalized.contains("-discover") {
         return AddonRole::Discover;
     }
 
-    if normalized.contains("source-plugin") {
+    if normalized.contains("-source") {
         if normalized.contains("manga") {
             return AddonRole::MangaSource;
         }

@@ -18,7 +18,7 @@ fn main() -> anyhow::Result<()> {
         .iter()
         .find(|plugin| {
             plugin.role == AddonRole::Source
-                && (plugin.id == "libgen-source-plugin" || plugin.id.contains("libgen"))
+                && (plugin.id == "libgen-source" || plugin.id.contains("libgen"))
         })
         .ok_or_else(|| anyhow::anyhow!("libgen source plugin not found"))?;
 

@@ -1,5 +1,5 @@
 [package]
-name = "mangadex-discover-plugin"
+name = "openlibrary-source"
 version = "0.1.0"
 edition = "2021"
 

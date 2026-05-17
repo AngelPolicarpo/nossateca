@@ -36,8 +36,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "plugins/dist/mangadex-discover-plugin.wasm",
-      "plugins/dist/openlibrary-discover-plugin.wasm"
+      "plugins/dist/mangadex-discover.wasm",
+      "plugins/dist/openlibrary-discover.wasm"
     ]
   }
 }
