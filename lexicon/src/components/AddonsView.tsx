@@ -566,7 +566,7 @@ export function AddonsView() {
 
                 {!settingsLoading && settingsDraft.length === 0 && (
                   <StateMessage>
-                    Este plugin ainda não possui chaves configuradas. Clique em Nova chave para
+                    Este plugin ainda não possui chaves configuradas. Clique no icone de chave para
                     adicionar a primeira configuração.
                   </StateMessage>
                 )}
