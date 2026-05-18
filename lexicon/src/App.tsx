@@ -6,6 +6,7 @@ import { DiscoverView } from "./components/DiscoverView";
 import { LibraryView } from "./components/LibraryView";
 import { ReaderView } from "./components/ReaderView";
 import { SettingsView } from "./components/SettingsView";
+import { TitleBar } from "./components/TitleBar";
 import { Button } from "./components/ui/Button";
 import { EmptyState } from "./components/ui/EmptyState";
 import { Input } from "./components/ui/Input";
@@ -774,6 +775,7 @@ function App() {
 
   return (
     <div className={`lx-app${mobileNavOpen ? " nav-open" : ""}`}>
+      <TitleBar />
       {mobileNavOpen && (
         <button
           type="button"
@@ -783,13 +785,9 @@ function App() {
         />
       )}
 
+      <div className="lx-shell">
       {/* Sidebar */}
       <aside className={`lx-sidebar${mobileNavOpen ? " open" : ""}`}>
-        <div className="lx-brand">
-          <div className="lx-brand-mark">N</div>
-          <span className="lx-brand-name">Nossateca</span>
-        </div>
-
         <nav className="lx-nav" aria-label="Navegação principal">
           <div className="lx-nav-list">
             {sidebarItems.map((item) => (
@@ -1152,6 +1150,7 @@ function App() {
             />
           )}
         </main>
+      </div>
       </div>
     </div>
   );

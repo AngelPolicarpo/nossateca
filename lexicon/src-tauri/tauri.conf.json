@@ -15,10 +15,9 @@
         "title": "Nossateca",
         "width": 800,
         "height": 600,
-        "decorations": true,
+        "decorations": false,
         "resizable": true,
-        "transparent": true,
-        "hiddenTitle": true
+        "transparent": true
       }
     ],
     "security": {

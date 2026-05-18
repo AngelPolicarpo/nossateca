@@ -28,6 +28,7 @@
   /* Component */
   --sx-nav-width: 248px;
   --sx-topbar-height: 56px;
+  --sx-titlebar-height: 32px;
 
   /* Motion */
   --sx-motion-hover: 120ms;
@@ -494,9 +495,70 @@ textarea:focus-visible {
 
 /* ─── SINTESIS App Shell ─────────────────────────────────────────────────── */
 .lx-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.lx-shell {
   display: grid;
   grid-template-columns: var(--sx-nav-width) 1fr;
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
+}
+
+.lx-titlebar {
+  height: var(--sx-titlebar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12px;
+  background: var(--sx-color-bg-canvas);
+  border-bottom: 1px solid var(--sx-color-border-subtle);
+  user-select: none;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: calc(var(--sx-z-sticky) + 1);
+}
+
+.lx-titlebar-title {
+  font-family: var(--sx-font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--sx-color-text-secondary);
+  flex: 1;
+}
+
+.lx-titlebar-controls {
+  display: flex;
+  height: 100%;
+}
+
+.lx-titlebar-controls button {
+  width: 46px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--sx-color-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--sx-motion-hover), color var(--sx-motion-hover);
+}
+
+.lx-titlebar-controls button:hover {
+  background: var(--sx-color-bg-hover);
+  color: var(--sx-color-text-primary);
+}
+
+.lx-titlebar-controls button.close:hover {
+  background: var(--sx-color-danger-500);
+  color: #fff;
 }
 
 .lx-sidebar {
@@ -507,39 +569,10 @@ textarea:focus-visible {
   padding: var(--space-20) var(--space-12);
   gap: var(--space-24);
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--sx-titlebar-height);
+  height: calc(100vh - var(--sx-titlebar-height));
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-.lx-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-8) var(--space-12);
-  flex-shrink: 0;
-}
-
-.lx-brand-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-8);
-  background: var(--sx-color-accent-500);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-}
-
-.lx-brand-name {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--sx-color-text-primary);
 }
 
 .lx-nav {
@@ -648,7 +681,7 @@ textarea:focus-visible {
 .lx-main {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--sx-titlebar-height));
   background: var(--sx-color-bg-canvas);
   overflow: hidden;
 }
@@ -1553,7 +1586,7 @@ textarea:focus-visible {
 }
 
 @media (max-width: 860px) {
-  .lx-app {
+  .lx-shell {
     grid-template-columns: 1fr;
   }
 
