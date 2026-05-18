@@ -44,27 +44,6 @@ const PAGE_SIZE = 24;
 const RESULT_GRID_COLUMNS_CLASS =
   "grid gap-[var(--space-14)] [grid-template-columns:repeat(auto-fill,minmax(148px,1fr))] min-[900px]:[grid-template-columns:repeat(auto-fill,minmax(162px,1fr))]";
 
-const CATALOG_TYPE_LABELS: Record<string, string> = {
-  subject: "Por tema",
-  trending: "Em destaque",
-  free: "Livros Gratuitos",
-  manga: "Mangás",
-};
-
-function humanizeToken(value: string): string {
-  const normalized = value.replace(/[:_-]+/g, " ").replace(/\s+/g, " ").trim();
-  if (normalized.length === 0) {
-    return "Sem nome";
-  }
-
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-}
-
-function getCatalogTypeLabel(contentType: string): string {
-  const normalized = contentType.trim().toLowerCase();
-  return CATALOG_TYPE_LABELS[normalized] ?? humanizeToken(normalized);
-}
-
 function getErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message.trim().length > 0) {
     return err.message;
@@ -370,7 +349,6 @@ export function DiscoverView({
 }: DiscoverViewProps) {
   const [debouncedGlobalSearchInput, setDebouncedGlobalSearchInput] = useState("");
   const [selectedCatalogKey, setSelectedCatalogKey] = useState("");
-  const [catalogTypeFilter, setCatalogTypeFilter] = useState("all");
   const [facetsExpanded, setFacetsExpanded] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [subjectSearchInput, setSubjectSearchInput] = useState("");
@@ -431,61 +409,18 @@ export function DiscoverView({
     );
   }, [catalogs, selectedCatalogInfo]);
 
-  const catalogTypeOptions = useMemo(() => {
-    const catalogTypeCounts = new Map<string, number>();
-
-    for (const catalog of catalogs) {
-      const normalizedType = catalog.contentType.trim().toLowerCase() || "other";
-      catalogTypeCounts.set(normalizedType, (catalogTypeCounts.get(normalizedType) ?? 0) + 1);
-    }
-
-    const dynamicOptions = Array.from(catalogTypeCounts.entries())
-      .filter(([type]) => type !== "all")
-      .sort(([left], [right]) =>
-        getCatalogTypeLabel(left).localeCompare(getCatalogTypeLabel(right), "pt-BR"),
-      )
-      .map(([value, count]) => ({
-        value,
-        count,
-        label: getCatalogTypeLabel(value),
-      }));
-
-    return [{ value: "all", label: "Todos", count: catalogs.length }, ...dynamicOptions];
-  }, [catalogs]);
-
-  const filteredCatalogs = useMemo(() => {
-    return catalogs.filter((catalog) => {
-      const normalizedType = catalog.contentType.trim().toLowerCase();
-
-      if (catalogTypeFilter !== "all" && normalizedType !== catalogTypeFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [catalogs, catalogTypeFilter]);
-
   const dropdownCatalogs = useMemo(() => {
     if (!selectedCatalog) {
-      return filteredCatalogs;
+      return catalogs;
     }
 
     const selectedKey = catalogKey(selectedCatalog);
-    if (filteredCatalogs.some((catalog) => catalogKey(catalog) === selectedKey)) {
-      return filteredCatalogs;
+    if (catalogs.some((catalog) => catalogKey(catalog) === selectedKey)) {
+      return catalogs;
     }
 
-    return [selectedCatalog, ...filteredCatalogs];
-  }, [filteredCatalogs, selectedCatalog]);
-
-  const catalogTypeSelectOptions = useMemo<SelectOption[]>(
-    () =>
-      catalogTypeOptions.map((option) => ({
-        value: option.value,
-        label: option.value === "all" ? option.label : `${option.label} (${option.count})`,
-      })),
-    [catalogTypeOptions],
-  );
+    return [selectedCatalog, ...catalogs];
+  }, [catalogs, selectedCatalog]);
 
   const catalogSelectOptions = useMemo<SelectOption[]>(
     () =>
@@ -508,16 +443,6 @@ export function DiscoverView({
     ],
     [],
   );
-
-  useEffect(() => {
-    if (catalogTypeFilter === "all") {
-      return;
-    }
-
-    if (!catalogTypeOptions.some((option) => option.value === catalogTypeFilter)) {
-      setCatalogTypeFilter("all");
-    }
-  }, [catalogTypeFilter, catalogTypeOptions]);
 
   useEffect(() => {
     if (!selectedCatalog) {
@@ -732,7 +657,6 @@ export function DiscoverView({
   const clearAllFilters = () => {
     onGlobalSearchInputChange("");
     setDebouncedGlobalSearchInput("");
-    setCatalogTypeFilter("all");
     setSelectedGenre(null);
     setYearFilterInput("");
     setDebouncedYearFilterInput("");
@@ -803,7 +727,6 @@ export function DiscoverView({
   const hasPrevious = skip > 0;
   const hasNext = itemsQuery.data?.hasMore ?? false;
   const currentPage = Math.floor(skip / PAGE_SIZE) + 1;
-  const hasCatalogExplorerFilters = catalogTypeFilter !== "all";
   const panelOpen = selectedItem !== null;
   const selectedItemKey = useMemo(
     () => (selectedItem ? itemIdentityKey(selectedItem) : null),
@@ -833,7 +756,6 @@ export function DiscoverView({
     (selectedCatalog?.contentType === "subject" && selectedGenre !== null);
   const hasAnyFilterApplied =
     globalSearchInput.trim().length > 0 ||
-    hasCatalogExplorerFilters ||
     hasRemoteFiltersApplied;
   const itemTotalCount = items.length;
 
@@ -900,7 +822,7 @@ export function DiscoverView({
     return (
       <div className="flex h-full flex-col overflow-hidden bg-[var(--color-surface-primary)]">
         <div className="dc-panel-head">
-          <span className="dc-panel-eyebrow">Livro selecionado</span>
+          <span className="dc-panel-eyebrow">Obra selecionada</span>
           <button
             ref={closePanelButtonRef}
             type="button"
@@ -1068,7 +990,7 @@ export function DiscoverView({
 
                             {!group.error && (
                               <span className="text-[12px] text-[var(--color-text-muted)]">
-                                {group.results.length} opção{group.results.length > 1 ? "ões" : ""}
+                                {group.results.length} {group.results.length === 1 ? "opção" : "opções"}
                               </span>
                             )}
                           </header>
@@ -1214,7 +1136,7 @@ export function DiscoverView({
 
                 {!group.error && (
                   <span className="text-[12px] text-[var(--color-text-muted)]">
-                    {group.chapters.length} {group.chapters.length === 1 ? "capítulo" : "capítulos"}
+                    {group.chapters.length} {group.chapters.length === 1 ? "opção" : "opções"}
                   </span>
                 )}
               </header>
@@ -1302,23 +1224,6 @@ export function DiscoverView({
         {!isSearching && (
         <header className="dc-filters-strip">
           <div className="dc-filters-primary" role="group" aria-label="Filtros principais">
-            <label htmlFor="discover-catalog-type" className="dc-filter-field">
-              <CustomSelect
-                id="discover-catalog-type"
-                triggerClassName="dc-filter-select"
-                menuClassName="dc-filter-menu"
-                optionClassName="dc-filter-option"
-                value={catalogTypeFilter}
-                options={catalogTypeSelectOptions}
-                onValueChange={(nextValue) => {
-                  setCatalogTypeFilter(nextValue);
-                  setSkip(0);
-                  closePanel();
-                }}
-                disabled={catalogsQuery.isLoading || catalogs.length === 0}
-              />
-            </label>
-
             <label htmlFor="discover-catalog-select" className="dc-filter-field dc-filter-field--grow">
               <CustomSelect
                 id="discover-catalog-select"

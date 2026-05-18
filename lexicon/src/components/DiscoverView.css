@@ -221,7 +221,7 @@
 }
 
 .dc-facet-input {
-  min-height: 36px;
+  min-height: var(--control-height);
   border-radius: var(--radius-4);
   border-color: rgba(0, 0, 0, 0.15);
   background: var(--color-surface-primary);
